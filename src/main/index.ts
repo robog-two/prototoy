@@ -5,13 +5,13 @@ import { registerIpcHandlers } from './ipc'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
-    minWidth: 900,
-    minHeight: 600,
+    width: 640,
+    height: 520,
+    minWidth: 400,
+    minHeight: 300,
     show: false,
     titleBarStyle: 'hiddenInset',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#fffdf7',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,

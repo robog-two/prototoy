@@ -23,6 +23,7 @@ import {
   regeneratePreviewApp,
   getPreviewPort
 } from './previewServer'
+import { getRecentProjects, addRecentProject } from './recentProjects'
 
 let watcher: FSWatcher | null = null
 let currentProjectPath: string | null = null
@@ -55,10 +56,10 @@ export function registerIpcHandlers(): void {
     return activateProject(filePath)
   })
 
-  ipcMain.handle('project:open', async () => {
-    const projectPath = await openProjectDialog()
-    if (!projectPath) return null
-    return activateProject(projectPath)
+  ipcMain.handle('project:open', async (_, projectPath?: string) => {
+    const path = projectPath || await openProjectDialog()
+    if (!path) return null
+    return activateProject(path)
   })
 
   ipcMain.handle('project:getTree', () => {
@@ -168,6 +169,18 @@ export function registerIpcHandlers(): void {
     regenerateAllClaudeMds(currentProjectPath, getProjectName(), getPreviewPort())
     return names
   })
+
+  ipcMain.handle('recent:get', () => {
+    return getRecentProjects()
+  })
+
+  ipcMain.handle('assets:delete', async (_, assetName: string) => {
+    if (!currentProjectPath) return
+    const assetPath = path.join(currentProjectPath, '.prototoy', 'include', assetName)
+    if (fs.existsSync(assetPath)) {
+      fs.unlinkSync(assetPath)
+    }
+  })
 }
 
 function activateProject(projectPath: string): ReturnType<typeof readProjectTree> {
@@ -187,6 +200,24 @@ function activateProject(projectPath: string): ReturnType<typeof readProjectTree
 
   const tree = readProjectTree(projectPath)
   const win = getMainWindow()
+
+  // Resize window to full size for project view, keeping it centered
+  if (win && !win.isMaximized()) {
+    win.setMinimumSize(400, 300)
+    const [oldX, oldY] = win.getPosition()
+    const [oldWidth, oldHeight] = win.getSize()
+    const newWidth = 1280
+    const newHeight = 800
+
+    // Calculate new position to keep window centered
+    const newX = Math.max(0, oldX + (oldWidth - newWidth) / 2)
+    const newY = Math.max(0, oldY + (oldHeight - newHeight) / 2)
+
+    win.setPosition(newX, newY)
+    win.setSize(newWidth, newHeight, true)
+  }
+
+  addRecentProject(tree)
 
   startPreviewServer(projectPath, (status, port) => {
     win?.webContents.send('preview:status', { status, port: port ?? null })

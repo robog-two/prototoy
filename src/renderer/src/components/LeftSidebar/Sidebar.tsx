@@ -9,11 +9,7 @@ import type { TreeNode } from '../../../../shared/types'
 export default function Sidebar(): React.ReactElement {
   const { tree, setTree, previewState } = useStore()
   const [creating, setCreating] = useState<{ type: 'screen' | 'section'; parentPath: string } | null>(null)
-
-  async function handleOpenProject(): Promise<void> {
-    const result = await window.api.openProject()
-    if (result) setTree(result)
-  }
+  const [filterText, setFilterText] = useState('')
 
   async function handleCreated(): Promise<void> {
     const updated = await window.api.getTree()
@@ -30,72 +26,84 @@ export default function Sidebar(): React.ReactElement {
           ? 'Preview error'
           : null
 
+  function filterNode(node: TreeNode, query: string): boolean {
+    const lowerQuery = query.toLowerCase()
+    return node.name.toLowerCase().includes(lowerQuery) ||
+           (node.children && node.children.some(child => filterNode(child, query)))
+  }
+
+  function renderFilteredNodes(nodes: TreeNode[], depth: number) {
+    return nodes
+      .filter(node => !filterText || filterNode(node, filterText))
+      .map((node, index) => (
+        <NodeRenderer
+          key={node.path}
+          node={node}
+          depth={depth}
+          projectPath={tree?.projectPath || ''}
+          onCreating={setCreating}
+          sectionIndex={index}
+        />
+      ))
+  }
+
+  const screenCount = tree?.children.reduce((acc, section) => acc + section.children.length, 0) || 0
+  const sectionCount = tree?.children.length || 0
+
   return (
-    <aside
-      style={{
-        width: 'var(--sidebar-width)',
-        minWidth: 'var(--sidebar-width)',
-        background: 'var(--bg-2)',
-        borderRight: '1px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        overflow: 'hidden'
-      }}
-    >
-      <div
-        style={{
-          padding: '10px 12px',
-          borderBottom: '1px solid var(--border)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          flexShrink: 0
-        }}
-      >
-        {tree ? (
-          <>
-            <span style={{ flex: 1, fontWeight: 500, fontSize: 12, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {tree.config.name}
-            </span>
-            <AddButton
-              title="New screen"
-              onClick={() => setCreating({ type: 'screen', parentPath: tree.projectPath })}
-            />
-            <AddButton
-              title="New section"
-              icon="folder"
-              onClick={() => setCreating({ type: 'section', parentPath: tree.projectPath })}
-            />
-          </>
-        ) : (
-          <button
-            onClick={handleOpenProject}
-            style={{ color: 'var(--accent)', fontSize: 12, fontWeight: 500 }}
-          >
-            Open Project…
-          </button>
-        )}
+    <aside className="sidebar">
+      <div className="sb-head">
+        <div className="proj-name">{tree?.config.name || 'Prototoy'}</div>
+        {tree && <div className="proj-path">{tree.projectPath}</div>}
       </div>
 
       {statusLabel && (
-        <div style={{ padding: '6px 12px', fontSize: 11, color: 'var(--text-3)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <div style={{ padding: 'var(--sp-3) var(--sp-4)', fontSize: 'var(--fs-xs)', color: 'var(--color-ink-60)', borderBottom: '1px solid var(--color-paper-3)', flexShrink: 0 }}>
           {statusLabel}
         </div>
       )}
 
       {tree && <AssetsZone />}
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
-        {tree?.children.map((node) => (
-          <NodeRenderer
-            key={node.path}
-            node={node}
-            depth={0}
-            projectPath={tree.projectPath}
-            onCreating={setCreating}
-          />
-        ))}
+      <div className="sb-tree-head">
+        <span>Screens</span>
+        <span className="count">{screenCount} / {sectionCount} collections</span>
+      </div>
+
+      <div className="sb-toolbar">
+        <button
+          className="sb-tool-btn"
+          onClick={() => setCreating({ type: 'screen', parentPath: tree?.projectPath || '' })}
+        >
+          <span className="plus">+</span> Screen
+        </button>
+        <button
+          className="sb-tool-btn"
+          onClick={() => setCreating({ type: 'section', parentPath: tree?.projectPath || '' })}
+        >
+          <span className="plus">+</span> Collection
+        </button>
+      </div>
+
+      <div className="sb-search">
+        <input
+          type="text"
+          placeholder="filter screens…"
+          value={filterText}
+          onChange={(e) => setFilterText(e.target.value)}
+        />
+      </div>
+
+      <div className="sb-tree">
+        {tree && renderFilteredNodes(tree.children, 0)}
+      </div>
+
+      <div className="sb-foot">
+        <span>{screenCount} screens · {sectionCount} collections</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ width: 6, height: 6, background: 'var(--color-green)', border: '1px solid var(--color-ink)' }} />
+          watching
+        </span>
       </div>
 
       {creating && (
@@ -114,18 +122,31 @@ function NodeRenderer({
   node,
   depth,
   projectPath,
-  onCreating
+  onCreating,
+  sectionIndex = 0
 }: {
   node: TreeNode
   depth: number
   projectPath: string
   onCreating: (c: { type: 'screen' | 'section'; parentPath: string }) => void
+  sectionIndex?: number
 }): React.ReactElement {
   if (node.type === 'screen') {
     return <ScreenNode node={node} depth={depth} projectPath={projectPath} />
   }
+
+  // Get color for section based on its index
+  const sectionColors = ['var(--color-cyan)', 'var(--color-green)', 'var(--color-yellow)', 'var(--color-pink)']
+  const color = sectionColors[sectionIndex % 4]
+
   return (
-    <SectionNode node={node} depth={depth} projectPath={projectPath} onCreating={onCreating}>
+    <SectionNode
+      node={node}
+      depth={depth}
+      projectPath={projectPath}
+      onCreating={onCreating}
+      color={color}
+    >
       {node.children.map((child) => (
         <NodeRenderer
           key={child.path}
@@ -133,40 +154,9 @@ function NodeRenderer({
           depth={depth + 1}
           projectPath={projectPath}
           onCreating={onCreating}
+          sectionIndex={sectionIndex}
         />
       ))}
     </SectionNode>
-  )
-}
-
-function AddButton({
-  title,
-  icon = 'screen',
-  onClick
-}: {
-  title: string
-  icon?: string
-  onClick: () => void
-}): React.ReactElement {
-  return (
-    <button
-      title={title}
-      onClick={onClick}
-      style={{
-        width: 22,
-        height: 22,
-        borderRadius: 4,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'var(--text-2)',
-        fontSize: 16,
-        lineHeight: 1
-      }}
-      onMouseEnter={(e) => ((e.target as HTMLElement).style.background = 'var(--bg-hover)')}
-      onMouseLeave={(e) => ((e.target as HTMLElement).style.background = 'transparent')}
-    >
-      {icon === 'folder' ? '⊕' : '+'}
-    </button>
   )
 }

@@ -4,7 +4,8 @@ import type { ProjectTree, PreviewState } from '../shared/types'
 const api = {
   createProject: (name: string, description: string): Promise<ProjectTree | null> =>
     ipcRenderer.invoke('project:create', name, description),
-  openProject: (): Promise<ProjectTree | null> => ipcRenderer.invoke('project:open'),
+  openProject: (projectPath?: string): Promise<ProjectTree | null> =>
+    projectPath ? ipcRenderer.invoke('project:open', projectPath) : ipcRenderer.invoke('project:open'),
   getTree: (): Promise<ProjectTree | null> => ipcRenderer.invoke('project:getTree'),
 
   createScreen: (parentPath: string, name: string): Promise<string> =>
@@ -28,6 +29,9 @@ const api = {
   listAssets: (): Promise<string[]> => ipcRenderer.invoke('assets:list'),
   importAssets: (): Promise<string[]> => ipcRenderer.invoke('assets:import'),
   dropAssets: (filePaths: string[]): Promise<string[]> => ipcRenderer.invoke('assets:drop', filePaths),
+  deleteAsset: (assetName: string): Promise<void> => ipcRenderer.invoke('assets:delete', assetName),
+
+  getRecentProjects: (): Promise<any[]> => ipcRenderer.invoke('recent:get'),
 
   onTreeChanged: (callback: (tree: ProjectTree) => void) => {
     const handler = (_: unknown, tree: ProjectTree) => callback(tree)
