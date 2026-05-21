@@ -1,7 +1,6 @@
 import React, { useRef, useEffect } from 'react'
 import { useStore } from '../../store'
 import { Camera, Reload, Claude } from '../Icons'
-import { useEllipsis } from '../../hooks/useEllipsis'
 import { relative } from 'path'
 
 const PHONE_W = 292
@@ -14,7 +13,7 @@ export default function PhoneView(): React.ReactElement {
   const { previewState, selectedScreenPath, selectedScreenUrlPath } = useStore()
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const mainRef = useEllipsis()
+  const mainRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (previewState.status !== 'ready' || !previewState.port || !iframeRef.current) return

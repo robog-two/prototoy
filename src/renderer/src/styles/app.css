@@ -777,6 +777,12 @@ input:focus, textarea:focus {
   overflow: hidden;
 }
 
+.tb-crumb span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .tb-crumb .crumb-sep {
   color: var(--color-ink-50);
   font-weight: normal;
@@ -1017,6 +1023,13 @@ input:focus, textarea:focus {
   color: var(--color-ink-60);
   gap: var(--sp-5);
   background: var(--color-paper);
+}
+
+.preview-foot span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .preview-foot .dot {
