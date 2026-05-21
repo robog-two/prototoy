@@ -53,7 +53,7 @@ export default function PhoneView(): React.ReactElement {
     if (!selectedScreenPath) return
     const parts = selectedScreenPath.split('/')
     const sectionPath = parts.slice(0, -1).join('/')
-    await window.api.copyToClipboard(`cd "${sectionPath}" && claude`)
+    await window.api.copyToClipboard(`cd "${sectionPath}" && claude --model haiku`)
     useStore.getState().showToast('Command copied — paste in terminal')
   }
 

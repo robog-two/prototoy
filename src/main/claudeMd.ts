@@ -77,6 +77,13 @@ These files are in \`_include/assets/\` and are also accessible from this sectio
 
 ${assetsSection}
 
+## Scope for Claude Code Agents
+
+When working in Claude Code, **stay in your lane**: you may edit screens, shared components, and shared styles upon the user's request. However, you **cannot** edit the external build system, preview server, or Prototoy frame itself — these are managed by the parent app and should never be modified.
+
+- ✅ **You CAN**: Create/edit screens in this section, add shared components to \`_include/components/\`, update \`_include/variables.css\`
+- ❌ **You CANNOT**: Modify \`.prototoy/\` config, package.json, build scripts, webpack/vite config, or any Prototoy infrastructure
+
 ## Instructions
 
 Write each screen as a **default-export React component** in its \`index.tsx\`. Follow these rules:
@@ -87,6 +94,39 @@ Write each screen as a **default-export React component** in its \`index.tsx\`. 
 - Each component renders inside a **390×844px** viewport (iPhone 14 Pro dimensions).
 - Import shared components via \`@include/components/Name\`, assets via \`@include/assets/filename\`, and CSS variables via \`@include/variables.css\`.
 - You can inspect available files directly: \`ls ./_include/assets/\` and \`ls ./_include/components/\`.
+
+## Linking Between Screens
+
+To create interactive navigation between screens:
+
+1. **Find the target screen's path**: The URL for each screen is derived from its folder structure. For example:
+   - A screen at \`Onboarding/Welcome/index.tsx\` has URL path \`/Onboarding/Welcome\`
+   - A screen at \`Settings/Profile/index.tsx\` has URL path \`/Settings/Profile\`
+
+2. **Create navigation links** using a simple link component or button:
+   \`\`\`jsx
+   <a href="/SectionName/ScreenName" style={{ textDecoration: 'none' }}>
+     <button>Go to next screen</button>
+   </a>
+   \`\`\`
+   Or with an onClick handler:
+   \`\`\`jsx
+   <button onClick={() => window.location.href = '/SectionName/ScreenName'}>
+     Next
+   </button>
+   \`\`\`
+
+3. **Use relative paths** if linking within the same section:
+   \`\`\`jsx
+   <a href="/SectionName/OtherScreen">Link</a>
+   \`\`\`
+
+4. **Return to a previous screen** using the browser back button:
+   \`\`\`jsx
+   <button onClick={() => window.history.back()}>Back</button>
+   \`\`\`
+
+The preview automatically handles routing — just use standard HTML anchors or \`window.location.href\` to navigate, and the preview will load the target screen in the iPhone frame.
 `
 }
 

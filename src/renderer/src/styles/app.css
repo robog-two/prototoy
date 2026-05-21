@@ -875,6 +875,7 @@ input:focus, textarea:focus {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 /* Status bar */
@@ -888,7 +889,7 @@ input:focus, textarea:focus {
   font-weight: bold;
   color: var(--color-ink);
   height: 32px;
-  flex: 0 0 auto;
+  flex: 0 0 32px;
 }
 
 .phone-notch {
@@ -919,6 +920,9 @@ input:focus, textarea:focus {
 .phone-iframe-container {
   flex: 1;
   overflow: hidden;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .phone-iframe-container iframe {
@@ -926,6 +930,7 @@ input:focus, textarea:focus {
   height: 100%;
   border: none;
   display: block;
+  flex: 1;
 }
 
 /* Placeholder content */

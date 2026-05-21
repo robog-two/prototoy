@@ -203,18 +203,23 @@ function activateProject(projectPath: string): ReturnType<typeof readProjectTree
 
   // Resize window to full size for project view, keeping it centered
   if (win && !win.isMaximized()) {
-    win.setMinimumSize(400, 300)
-    const [oldX, oldY] = win.getPosition()
-    const [oldWidth, oldHeight] = win.getSize()
-    const newWidth = 1280
-    const newHeight = 800
+    try {
+      win.setMinimumSize(400, 300)
+      const [oldX, oldY] = win.getPosition()
+      const [oldWidth, oldHeight] = win.getSize()
+      const newWidth = 1280
+      const newHeight = 800
 
-    // Calculate new position to keep window centered
-    const newX = Math.max(0, oldX + (oldWidth - newWidth) / 2)
-    const newY = Math.max(0, oldY + (oldHeight - newHeight) / 2)
+      // Calculate new position to keep window centered
+      const newX = Math.floor(Math.max(0, oldX + (oldWidth - newWidth) / 2))
+      const newY = Math.floor(Math.max(0, oldY + (oldHeight - newHeight) / 2))
 
-    win.setPosition(newX, newY)
-    win.setSize(newWidth, newHeight, true)
+      win.setPosition(newX, newY)
+      win.setSize(newWidth, newHeight, true)
+    } catch (err) {
+      // If positioning fails, just resize without repositioning
+      win.setSize(1280, 800, true)
+    }
   }
 
   addRecentProject(tree)
