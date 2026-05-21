@@ -3,3 +3,9 @@
 /prototoy-new-design
 /.claude
 /**/.DS_Store
+/build/*
+
+# But allow the generation script and documentation
+!/build/generate-icons.js
+!/build/README.md
+/dist

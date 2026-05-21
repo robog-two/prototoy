@@ -9,10 +9,16 @@ files:
   - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.*}'
-  - '!build/{icon,*}'
+  - '!build/generate-icons.js'
 asarUnpack:
   - resources/**
+win:
+  icon: build/icon/icon.png
+  target:
+    - nsis
+    - portable
 mac:
+  icon: build/icon/icon.png
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
@@ -20,3 +26,5 @@ mac:
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
+linux:
+  icon: build/icon/
