@@ -65,10 +65,6 @@ export default function Sidebar(): React.ReactElement {
 
       {tree && <AssetsZone />}
 
-      <div className="sb-tree-head">
-        <span>Screens</span>
-        <span className="count">{screenCount} / {sectionCount} collections</span>
-      </div>
 
       <div className="sb-toolbar">
         <button
@@ -88,7 +84,7 @@ export default function Sidebar(): React.ReactElement {
       <div className="sb-search">
         <input
           type="text"
-          placeholder="filter screens…"
+          placeholder="Search by name…"
           value={filterText}
           onChange={(e) => setFilterText(e.target.value)}
         />

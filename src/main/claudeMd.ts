@@ -11,16 +11,13 @@ export function generateSectionClaudeMd(
   sectionPath: string,
   projectPath: string,
   projectName: string,
-  description: string,
-  previewPort: number | null
+  description: string
 ): string {
   const cssVars = parseCssVariables(projectPath)
   const components = listSharedComponents(projectPath)
   const assets = listAssets(projectPath)
   const screens = collectScreensInSection(sectionPath)
   const sectionName = path.basename(sectionPath)
-
-  const previewUrl = previewPort ? `http://localhost:${previewPort}` : 'not yet started'
 
   const cssVarsSection =
     Object.keys(cssVars).length > 0
@@ -57,25 +54,23 @@ export function generateSectionClaudeMd(
 
 ${screensSection}
 
-## Live Preview
-
-The preview dev server is already running at **${previewUrl}**. Do NOT stop, restart, or run \`npm run dev\` — it is managed by the Prototoy app. Open this URL in a browser to see the currently selected screen render live. When you edit and save a screen's \`index.tsx\`, the preview updates automatically via HMR.
-
-## Available CSS Variables
-
-These are defined in \`_include/variables.css\` and injected into every screen automatically:
-
-${cssVarsSection}
-
 ## Shared Components
+
+Reusable UI components for this section:
 
 ${componentsSection}
 
 ## Assets
 
-These files are in \`_include/assets/\` and are also accessible from this section folder via the \`_include\` symlink (e.g. \`./_include/assets/logo.png\`). In \`index.tsx\`, import them using the \`@include\` alias which the preview server resolves automatically:
+Images and media files available to import:
 
 ${assetsSection}
+
+## CSS Variables
+
+Use these design tokens for consistent styling:
+
+${cssVarsSection}
 
 ## Scope for Claude Code Agents
 
@@ -88,12 +83,40 @@ When working in Claude Code, **stay in your lane**: you may edit screens, shared
 
 Write each screen as a **default-export React component** in its \`index.tsx\`. Follow these rules:
 
-- Use **inline CSS styles** and **CSS custom properties** (from the variables above) for all styling.
+- Use **inline CSS styles** and **CSS custom properties** for all styling.
 - Do **NOT** use component libraries (shadcn, Material UI, Tailwind, Chakra, etc.) — this is a custom design prototype and pre-built components will make it feel generic.
 - When you have any question about a **color, spacing, size, border radius, font, or other visual detail**, ask the user rather than guessing or falling back to defaults. The user has a specific design in mind.
-- Each component renders inside a **390×844px** viewport (iPhone 14 Pro dimensions).
-- Import shared components via \`@include/components/Name\`, assets via \`@include/assets/filename\`, and CSS variables via \`@include/variables.css\`.
-- You can inspect available files directly: \`ls ./_include/assets/\` and \`ls ./_include/components/\`.
+
+### Mobile-First Responsive Design
+
+Design **mobile-first** using CSS media queries:
+
+- Start with styles optimized for the base viewport (416×754px)
+- Use CSS variables for flexible sizing
+- Add media queries for larger screens: \`@media (min-width: 768px) { ... }\`
+- Use flexbox and grid with \`flex-wrap\` and \`flex-direction\` for responsive layouts
+- Avoid fixed widths; prefer \`max-width\` with percentages or CSS variables
+- Test at different viewport sizes by resizing the window
+
+Example:
+\`\`\`jsx
+<div style={{
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 'var(--sp-4)',
+  padding: 'var(--sp-4)',
+  maxWidth: '100%',
+  '@media (min-width: 768px)': {
+    flexDirection: 'row',
+    padding: 'var(--sp-8)'
+  }
+}}>
+  {/* content */}
+</div>
+\`\`\`
+
+- Import shared components via \`@include/components/Name\`, assets via \`@include/assets/filename\`
+- You can inspect available files directly: \`ls ./_include/assets/\` and \`ls ./_include/components/\`
 
 ## Linking Between Screens
 
@@ -133,8 +156,7 @@ The preview automatically handles routing — just use standard HTML anchors or 
 export function writeSectionClaudeMd(
   sectionPath: string,
   projectPath: string,
-  projectName: string,
-  previewPort: number | null
+  projectName: string
 ): void {
   const folderConfigPath = path.join(sectionPath, 'folder.json')
   let description = ''
@@ -148,16 +170,14 @@ export function writeSectionClaudeMd(
     sectionPath,
     projectPath,
     projectName,
-    description,
-    previewPort
+    description
   )
   fs.writeFileSync(path.join(sectionPath, 'CLAUDE.md'), content)
 }
 
 export function regenerateAllClaudeMds(
   projectPath: string,
-  projectName: string,
-  previewPort: number | null
+  projectName: string
 ): void {
   function walk(dir: string): void {
     const entries = fs.readdirSync(dir, { withFileTypes: true })
@@ -165,7 +185,44 @@ export function regenerateAllClaudeMds(
       if (!entry.isDirectory() || entry.name.startsWith('.') || entry.name === '_include') continue
       const childPath = path.join(dir, entry.name)
       if (fs.existsSync(path.join(childPath, 'folder.json'))) {
-        writeSectionClaudeMd(childPath, projectPath, projectName, previewPort)
+        writeSectionClaudeMd(childPath, projectPath, projectName)
+        walk(childPath)
+      }
+    }
+  }
+  walk(projectPath)
+}
+
+export function generateSectionSkill(sectionPath: string): void {
+  const skillDir = path.join(sectionPath, '.claude', 'skills')
+  fs.mkdirSync(skillDir, { recursive: true })
+
+  const skillContent = `---
+name: review-changes
+description: Review your changes and let the user decide if they look right
+metadata:
+  scope: section
+---
+
+Review your edits:
+1. Show the user what changed in the code
+2. Ask if the changes match their intent
+3. Let them decide if further adjustments are needed
+
+Don't run or build anything — just present the changes and wait for feedback.
+`
+
+  fs.writeFileSync(path.join(skillDir, 'review-changes.md'), skillContent)
+}
+
+export function regenerateAllSkills(projectPath: string): void {
+  function walk(dir: string): void {
+    const entries = fs.readdirSync(dir, { withFileTypes: true })
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.name.startsWith('.') || entry.name === '_include') continue
+      const childPath = path.join(dir, entry.name)
+      if (fs.existsSync(path.join(childPath, 'folder.json'))) {
+        generateSectionSkill(childPath)
         walk(childPath)
       }
     }

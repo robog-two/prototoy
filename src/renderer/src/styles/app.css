@@ -296,12 +296,16 @@ input:focus, textarea:focus {
   display: flex;
   gap: 4px;
   padding: var(--sp-3) var(--sp-4);
+  border-top: var(--border-w) solid var(--color-ink);
   border-bottom: 1px solid var(--color-paper-3);
   background: var(--color-paper-2);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .sb-tool-btn {
   flex: 1;
+  min-width: 0;
   padding: 5px 8px;
   font-family: var(--font-display);
   font-size: var(--fs-xs);
@@ -318,9 +322,19 @@ input:focus, textarea:focus {
   transition: background var(--t-fast), color var(--t-fast);
 }
 
+
 .sb-tool-btn:hover {
   background: var(--color-ink);
   color: var(--color-primary);
+}
+
+.sb-tool-btn .plus {
+  flex-shrink: 0;
+}
+
+.sb-tool-btn span:not(.plus) {
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .sb-tool-btn .plus {
@@ -340,6 +354,8 @@ input:focus, textarea:focus {
   padding: 4px 8px;
   font-family: var(--font-display);
   font-size: var(--fs-xs);
+  border: none;
+  background-color: transparent;
 }
 
 .sb-tree {
@@ -569,9 +585,9 @@ input:focus, textarea:focus {
 
 /* ----- Sidebar: assets panel -------------------------------- */
 .sb-assets {
-  border-bottom: var(--border-w) solid var(--color-ink);
   background: var(--color-paper-2);
-  padding: var(--sp-4) var(--sp-4) var(--sp-3);
+  padding: var(--sp-3);
+  margin-bottom: var(--sp-5);
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
@@ -745,6 +761,8 @@ input:focus, textarea:focus {
   padding: 0 var(--sp-6);
   background: var(--color-paper);
   border-bottom: var(--border-w) solid var(--color-ink);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .tb-crumb {
@@ -755,6 +773,8 @@ input:focus, textarea:focus {
   display: flex;
   align-items: center;
   gap: 7px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .tb-crumb .crumb-sep {
@@ -784,15 +804,33 @@ input:focus, textarea:focus {
   color: var(--color-ink);
   border: 1.5px solid var(--color-ink);
   cursor: pointer;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
   transition: background var(--t-fast), color var(--t-fast);
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 200px;
 }
+
+.tb-btn svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+  flex-shrink: 0;
+}
+
 
 .tb-btn:hover {
   background: var(--color-ink);
   color: var(--color-primary);
+}
+
+.tb-btn span {
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .tb-btn.primary {
@@ -883,13 +921,13 @@ input:focus, textarea:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 18px 0;
+  padding: 2px 18px 0;
   font-family: var(--font-display);
   font-size: 11px;
   font-weight: bold;
   color: var(--color-ink);
-  height: 32px;
-  flex: 0 0 32px;
+  height: 15px;
+  flex: 0 0 15px;
 }
 
 .phone-notch {
@@ -1517,4 +1555,15 @@ input:focus, textarea:focus {
   justify-content: center;
   padding-top: var(--sp-6);
   border-top: 2px solid var(--color-ink);
+}
+
+/* Icon-only mode for narrow viewports */
+@media (max-width: 1000px) {
+  .tb-btn span {
+    display: none;
+  }
+
+  .sb-tool-btn span:not(.plus) {
+    display: none;
+  }
 }

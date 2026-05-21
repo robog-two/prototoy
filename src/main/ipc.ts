@@ -16,7 +16,7 @@ import {
   listAssets,
   copyAssetsToInclude
 } from './fileSystem'
-import { writeSectionClaudeMd, regenerateAllClaudeMds } from './claudeMd'
+import { writeSectionClaudeMd, regenerateAllClaudeMds, regenerateAllSkills } from './claudeMd'
 import {
   startPreviewServer,
   stopPreviewServer,
@@ -71,7 +71,7 @@ export function registerIpcHandlers(): void {
     const screenPath = createScreen(parentPath, name)
     const sectionPath = findSectionAncestor(parentPath)
     if (sectionPath && currentProjectPath) {
-      writeSectionClaudeMd(sectionPath, currentProjectPath, getProjectName(), getPreviewPort())
+      writeSectionClaudeMd(sectionPath, currentProjectPath, getProjectName())
     }
     regeneratePreviewApp()
     return screenPath
@@ -80,7 +80,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('section:create', async (_, parentPath: string, name: string, description: string) => {
     const sectionPath = createSection(parentPath, name, description, currentProjectPath ?? undefined)
     if (currentProjectPath) {
-      writeSectionClaudeMd(sectionPath, currentProjectPath, getProjectName(), getPreviewPort())
+      writeSectionClaudeMd(sectionPath, currentProjectPath, getProjectName())
       const parentSection = findSectionAncestor(parentPath)
       if (parentSection) {
         writeSectionClaudeMd(parentSection, currentProjectPath, getProjectName(), getPreviewPort())
@@ -114,7 +114,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('section:updateDescription', async (_, sectionPath: string, description: string) => {
     updateSectionDescription(sectionPath, description)
     if (currentProjectPath) {
-      writeSectionClaudeMd(sectionPath, currentProjectPath, getProjectName(), getPreviewPort())
+      writeSectionClaudeMd(sectionPath, currentProjectPath, getProjectName())
     }
   })
 
@@ -159,14 +159,14 @@ export function registerIpcHandlers(): void {
     })
     if (canceled || filePaths.length === 0) return []
     const names = copyAssetsToInclude(currentProjectPath, filePaths)
-    regenerateAllClaudeMds(currentProjectPath, getProjectName(), getPreviewPort())
+    regenerateAllClaudeMds(currentProjectPath, getProjectName())
     return names
   })
 
   ipcMain.handle('assets:drop', async (_, filePaths: string[]) => {
     if (!currentProjectPath || filePaths.length === 0) return []
     const names = copyAssetsToInclude(currentProjectPath, filePaths)
-    regenerateAllClaudeMds(currentProjectPath, getProjectName(), getPreviewPort())
+    regenerateAllClaudeMds(currentProjectPath, getProjectName())
     return names
   })
 
@@ -199,6 +199,11 @@ function activateProject(projectPath: string): ReturnType<typeof readProjectTree
     .on('all', () => sendTreeUpdate())
 
   const tree = readProjectTree(projectPath)
+
+  // Generate CLAUDE.md and skills for all sections immediately
+  regenerateAllClaudeMds(projectPath, tree.config.name)
+  regenerateAllSkills(projectPath)
+
   const win = getMainWindow()
 
   // Resize window to full size for project view, keeping it centered
@@ -227,7 +232,7 @@ function activateProject(projectPath: string): ReturnType<typeof readProjectTree
   startPreviewServer(projectPath, (status, port) => {
     win?.webContents.send('preview:status', { status, port: port ?? null })
     if (status === 'ready' && port) {
-      regenerateAllClaudeMds(projectPath, tree.config.name, port)
+      regenerateAllClaudeMds(projectPath, tree.config.name)
     }
   }).catch((err) => {
     win?.webContents.send('preview:status', { status: 'error', error: err.message })

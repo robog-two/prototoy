@@ -1,31 +1,20 @@
-import React, { useRef, useEffect, useState } from 'react'
+import React, { useRef, useEffect } from 'react'
 import { useStore } from '../../store'
 import { Camera, Reload, Claude } from '../Icons'
+import { useEllipsis } from '../../hooks/useEllipsis'
+import { relative } from 'path'
 
-const PHONE_W = 320
-const PHONE_H = 580
-const BEZEL = 11
+const PHONE_W = 292
+const PHONE_H = 552
+const SCALE = 1 / 0.85
+const IFRAME_W = PHONE_W * SCALE
+const IFRAME_H = PHONE_H * SCALE
 
 export default function PhoneView(): React.ReactElement {
   const { previewState, selectedScreenPath, selectedScreenUrlPath } = useStore()
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const [scale, setScale] = useState(1)
   const containerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function updateScale(): void {
-      if (!containerRef.current) return
-      const { width, height } = containerRef.current.getBoundingClientRect()
-      const totalW = PHONE_W + BEZEL * 2
-      const totalH = PHONE_H + BEZEL * 2 + 40 + 44 + 28
-      const s = Math.min((width - 64) / totalW, (height - 64) / totalH, 1)
-      setScale(Math.max(s, 0.3))
-    }
-    updateScale()
-    const ro = new ResizeObserver(updateScale)
-    if (containerRef.current) ro.observe(containerRef.current)
-    return () => ro.disconnect()
-  }, [])
+  const mainRef = useEllipsis()
 
   useEffect(() => {
     if (previewState.status !== 'ready' || !previewState.port || !iframeRef.current) return
@@ -35,6 +24,7 @@ export default function PhoneView(): React.ReactElement {
       iframeRef.current.src = target
     }
   }, [selectedScreenUrlPath, previewState.status, previewState.port])
+
 
   function handleReset(): void {
     if (iframeRef.current) {
@@ -66,7 +56,7 @@ export default function PhoneView(): React.ReactElement {
   const sectionName = selectedScreenPath ? selectedScreenPath.split('/').slice(-2, -1)[0] : ''
 
   return (
-    <div className="main">
+    <div className="main" ref={mainRef}>
       <div className="toolbar">
         <div className="tb-crumb">
           <span style={{ color: 'var(--color-ink-60)' }}>{sectionName}</span>
@@ -74,14 +64,14 @@ export default function PhoneView(): React.ReactElement {
           <span className="crumb-screen">{screenName}</span>
         </div>
         <div className="tb-spacer" />
-        <button className="tb-btn" onClick={handleReset} disabled={!isReady}>
-          <Reload /> Reset
+        <button className="tb-btn" onClick={handleReset} disabled={!isReady} title="Reset">
+          <Reload /> <span>Reset</span>
         </button>
-        <button className="tb-btn" onClick={handleScreenshot} disabled={!isReady || !selectedScreenPath}>
-          <Camera /> Screenshot
+        <button className="tb-btn" onClick={handleScreenshot} disabled={!isReady || !selectedScreenPath} title="Screenshot">
+          <Camera /> <span>Screenshot</span>
         </button>
-        <button className="tb-btn primary" onClick={handleOpenInClaude} disabled={!selectedScreenPath}>
-          <Claude /> Open in Claude Code
+        <button className="tb-btn primary" onClick={handleOpenInClaude} disabled={!selectedScreenPath} title="Open in Claude Code">
+          <Claude /> <span>Open in Claude Code</span>
         </button>
       </div>
 
@@ -97,16 +87,14 @@ export default function PhoneView(): React.ReactElement {
           overflow: 'hidden'
         }}
       >
-        <div style={{ transform: `scale(${scale})`, transformOrigin: 'center center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
           <div className="phone-wrap">
             <div className="phone-meta">
-              <span className="dim">320 × 580</span>
-              <span>iPhone (custom)</span>
-              <span className="dim">{screenName}.tsx</span>
+              {screenName && <span className="dim">{screenName}</span>}
             </div>
             <div className="phone">
               <div className="phone-screen">
-                <div className="phone-status">
+                <div className="phone-status" style={{ zIndex: '10' }}>
                   <span>9:41</span>
                   <div className="phone-stat-right">
                     <svg width="14" height="9" viewBox="0 0 14 9" fill="currentColor"><rect x="0" y="3" width="2" height="6"/><rect x="3" y="2" width="2" height="7"/><rect x="6" y="1" width="2" height="8"/><rect x="9" y="0" width="2" height="9"/></svg>
@@ -120,6 +108,17 @@ export default function PhoneView(): React.ReactElement {
                     <iframe
                       ref={iframeRef}
                       title="Screen preview"
+                      sandbox="allow-same-origin allow-scripts allow-forms"
+                      style={{
+                        position: 'absolute',
+                        top: '0',
+                        left: '0',
+                        width: IFRAME_W,
+                        height: IFRAME_H,
+                        border: 'none',
+                        transform: `scale(${1 / SCALE})`,
+                        transformOrigin: 'top left'
+                      }}
                     />
                   </div>
                 ) : (
