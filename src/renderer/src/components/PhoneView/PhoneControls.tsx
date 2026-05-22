@@ -10,13 +10,21 @@ export default function PhoneControls({ iframeRef, onReset }: Props): React.Reac
   const { selectedScreenPath, previewState, showToast } = useStore()
 
   async function handleScreenshot(): Promise<void> {
-    const filePath = await window.api.saveScreenshot()
-    if (!filePath || !iframeRef.current) return
-    // Screenshot via webContents.capturePage is handled in renderer
-    // by using html2canvas in the iframe context via postMessage is complex
-    // Instead, capture from electron main side is the reliable path
-    // We notify the user with the file path approach
-    showToast('Screenshot saved')
+    let rect: { x: number; y: number; width: number; height: number } | undefined
+    if (iframeRef.current) {
+      const r = iframeRef.current.getBoundingClientRect()
+      const dpr = window.devicePixelRatio ?? 1
+      rect = {
+        x: Math.round(r.left * dpr),
+        y: Math.round(r.top * dpr),
+        width: Math.round(r.width * dpr),
+        height: Math.round(r.height * dpr)
+      }
+    }
+    const filePath = await window.api.saveScreenshot(rect)
+    if (filePath) {
+      showToast('Screenshot saved')
+    }
   }
 
   async function handleOpenInClaude(): Promise<void> {

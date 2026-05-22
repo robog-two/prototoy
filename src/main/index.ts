@@ -1,9 +1,49 @@
-import { app, BrowserWindow, shell, ipcMain } from 'electron'
+import { app, BrowserWindow, shell, ipcMain, nativeImage } from 'electron'
 import { join } from 'path'
+import { homedir } from 'os'
+import * as fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { registerIpcHandlers } from './ipc'
 
+function registerLinuxDesktop(): void {
+  if (process.platform !== 'linux' || !process.env.APPIMAGE) return
+
+  const iconDir = join(homedir(), '.local/share/icons/hicolor/256x256/apps')
+  const iconDest = join(iconDir, 'prototoy.png')
+  const desktopDir = join(homedir(), '.local/share/applications')
+  const desktopDest = join(desktopDir, 'prototoy.desktop')
+  const iconSrc = join(process.resourcesPath, 'icon.png')
+
+  try {
+    if (!fs.existsSync(iconDest)) {
+      fs.mkdirSync(iconDir, { recursive: true })
+      fs.copyFileSync(iconSrc, iconDest)
+    }
+
+    if (!fs.existsSync(desktopDest)) {
+      fs.mkdirSync(desktopDir, { recursive: true })
+      fs.writeFileSync(desktopDest, [
+        '[Desktop Entry]',
+        'Name=Prototoy',
+        'Comment=UI mockup and wireframe organizer',
+        `Exec=${process.env.APPIMAGE}`,
+        'Icon=prototoy',
+        'Type=Application',
+        'Categories=Development;',
+        'StartupWMClass=Prototoy',
+      ].join('\n') + '\n')
+    }
+  } catch {
+    // Non-fatal — icon just won't appear in compositor
+  }
+}
+
 function createWindow(): void {
+  const iconPath = is.dev
+    ? join(__dirname, '../../build/icon/icon-256x256.png')
+    : join(process.resourcesPath, 'icon.png')
+  const icon = nativeImage.createFromPath(iconPath)
+
   const mainWindow = new BrowserWindow({
     width: 640,
     height: 520,
@@ -12,6 +52,7 @@ function createWindow(): void {
     show: false,
     titleBarStyle: 'hiddenInset',
     backgroundColor: '#fffdf7',
+    icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -34,6 +75,9 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 }
+
+app.setName('Prototoy')
+registerLinuxDesktop()
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.localify.prototoy')

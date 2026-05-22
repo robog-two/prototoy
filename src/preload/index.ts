@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ProjectTree, PreviewState } from '../shared/types'
+import type { ProjectTree, PreviewState, ProjectIssue } from '../shared/types'
 
 const api = {
   createProject: (name: string, description: string): Promise<ProjectTree | null> =>
@@ -22,9 +22,10 @@ const api = {
 
   selectScreen: (screenPath: string): Promise<string | null> => ipcRenderer.invoke('screen:select', screenPath),
   getPreviewPort: (): Promise<number | null> => ipcRenderer.invoke('preview:getPort'),
+  getPreviewLogs: (): Promise<string[]> => ipcRenderer.invoke('preview:getLogs'),
 
   copyToClipboard: (text: string): Promise<void> => ipcRenderer.invoke('clipboard:write', text),
-  saveScreenshot: (): Promise<string | undefined> => ipcRenderer.invoke('screenshot:save'),
+  saveScreenshot: (rect?: { x: number; y: number; width: number; height: number }): Promise<string | undefined> => ipcRenderer.invoke('screenshot:save', rect),
 
   listAssets: (): Promise<string[]> => ipcRenderer.invoke('assets:list'),
   importAssets: (): Promise<string[]> => ipcRenderer.invoke('assets:import'),
@@ -43,7 +44,25 @@ const api = {
     const handler = (_: unknown, state: PreviewState) => callback(state)
     ipcRenderer.on('preview:status', handler)
     return () => ipcRenderer.removeListener('preview:status', handler)
-  }
+  },
+
+  onProjectError: (callback: (err: { message: string; path: string }) => void) => {
+    const handler = (_: unknown, err: { message: string; path: string }) => callback(err)
+    ipcRenderer.on('project:error', handler)
+    return () => ipcRenderer.removeListener('project:error', handler)
+  },
+
+  onProjectIssues: (callback: (issues: ProjectIssue[]) => void) => {
+    const handler = (_: unknown, issues: ProjectIssue[]) => callback(issues)
+    ipcRenderer.on('project:issues', handler)
+    return () => ipcRenderer.removeListener('project:issues', handler)
+  },
+
+  repairIssueAuto: (kind: string, targetPath: string): Promise<void> =>
+    ipcRenderer.invoke('issue:repairAuto', kind, targetPath),
+
+  repairIssueText: (sectionPath: string, description: string): Promise<void> =>
+    ipcRenderer.invoke('issue:repairText', sectionPath, description)
 }
 
 contextBridge.exposeInMainWorld('api', api)

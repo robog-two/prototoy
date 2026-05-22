@@ -10,8 +10,14 @@ files:
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.*}'
   - '!build/generate-icons.js'
+extraResources:
+  - from: build/icon/icon-256x256.png
+    to: icon.png
 asarUnpack:
   - resources/**
+  - node_modules/react/**
+  - node_modules/react-dom/**
+  - node_modules/scheduler/**
 win:
   icon: build/icon/icon.png
   target:
@@ -19,12 +25,25 @@ win:
     - portable
 mac:
   icon: build/icon/icon.png
+  category: public.app-category.developer-tools
   entitlementsInherit: build/entitlements.mac.plist
+  identity: false
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
+  target:
+    - dmg
+    - zip
 linux:
   icon: build/icon/
+  category: Development
+  description: UI mockup and wireframe organizer
+  maintainer: Localify
+  desktop:
+    entry:
+      StartupWMClass: Prototoy
+  target:
+    - AppImage

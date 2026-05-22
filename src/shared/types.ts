@@ -1,10 +1,10 @@
 export interface ProjectConfig {
   name: string
-  description: string
+  description?: string
 }
 
 export interface FolderConfig {
-  description: string
+  description?: string
 }
 
 export interface ScreenNode {
@@ -33,4 +33,22 @@ export interface PreviewState {
   port: number | null
   status: 'idle' | 'installing' | 'starting' | 'ready' | 'error'
   error?: string
+}
+
+export type IssueKind =
+  | 'project-config-corrupt'
+  | 'section-config-corrupt'
+  | 'section-config-missing-desc'
+  | 'directory-unreadable'
+  | 'include-dir-missing'
+  | 'symlink-failed'
+
+export interface ProjectIssue {
+  id: string
+  kind: IssueKind
+  title: string
+  detail: string
+  path: string
+  repair: 'none' | 'auto' | 'text'
+  repairCurrentValue?: string
 }

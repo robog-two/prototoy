@@ -39,8 +39,10 @@ export function getRecentProjects(): RecentProject[] {
 
 export function addRecentProject(tree: ProjectTree): void {
   const recents = readRecentProjects()
-  const screenCount = tree.children.reduce((sum, section) => sum + section.children.length, 0)
-  const sectionCount = tree.children.length
+  const screenCount = tree.children.reduce((sum, node) => {
+    return sum + (node.type === 'section' ? (node.children?.length ?? 0) : 1)
+  }, 0)
+  const sectionCount = tree.children.filter((n) => n.type === 'section').length
 
   const newEntry: RecentProject = {
     name: tree.config.name,

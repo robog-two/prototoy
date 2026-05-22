@@ -13,15 +13,18 @@ import {
   updateSectionDescription,
   ensureIncludeDir,
   ensureAllSectionSymlinks,
+  ensureSectionIncludeSymlink,
   listAssets,
   copyAssetsToInclude
 } from './fileSystem'
+import type { ProjectIssue } from '../shared/types'
 import { writeSectionClaudeMd, regenerateAllClaudeMds, regenerateAllSkills } from './claudeMd'
 import {
   startPreviewServer,
   stopPreviewServer,
   regeneratePreviewApp,
-  getPreviewPort
+  getPreviewPort,
+  getPreviewLogs
 } from './previewServer'
 import { getRecentProjects, addRecentProject } from './recentProjects'
 
@@ -35,8 +38,12 @@ function getMainWindow(): BrowserWindow | null {
 function sendTreeUpdate(): void {
   const win = getMainWindow()
   if (!win || !currentProjectPath) return
-  const tree = readProjectTree(currentProjectPath)
-  win.webContents.send('tree:changed', tree)
+  try {
+    const tree = readProjectTree(currentProjectPath)
+    win.webContents.send('tree:changed', tree)
+  } catch {
+    // Non-fatal: skip this update (e.g. folder was deleted mid-watch)
+  }
 }
 
 export function registerIpcHandlers(): void {
@@ -125,12 +132,13 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('preview:getPort', () => getPreviewPort())
+  ipcMain.handle('preview:getLogs', () => getPreviewLogs())
 
   ipcMain.handle('clipboard:write', (_, text: string) => {
     clipboard.writeText(text)
   })
 
-  ipcMain.handle('screenshot:save', async () => {
+  ipcMain.handle('screenshot:save', async (_event, rect?: { x: number; y: number; width: number; height: number }) => {
     const win = getMainWindow()
     if (!win) return
     const { canceled, filePath } = await dialog.showSaveDialog(win, {
@@ -138,6 +146,8 @@ export function registerIpcHandlers(): void {
       filters: [{ name: 'PNG Image', extensions: ['png'] }]
     })
     if (canceled || !filePath) return
+    const image = await win.webContents.capturePage(rect)
+    fs.writeFileSync(filePath, image.toPNG())
     return filePath
   })
 
@@ -181,12 +191,76 @@ export function registerIpcHandlers(): void {
       fs.unlinkSync(assetPath)
     }
   })
+
+  ipcMain.handle('issue:repairAuto', (_, kind: string, targetPath: string) => {
+    switch (kind) {
+      case 'include-dir-missing':
+        ensureIncludeDir(targetPath)
+        break
+      case 'symlink-failed':
+        if (!currentProjectPath) throw new Error('No project open')
+        ensureSectionIncludeSymlink(targetPath, currentProjectPath)
+        break
+      default:
+        throw new Error(`Unknown auto-repair kind: ${kind}`)
+    }
+  })
+
+  ipcMain.handle('issue:repairText', (_, sectionPath: string, description: string) => {
+    const configPath = path.join(sectionPath, 'folder.json')
+    let existing: Record<string, unknown> = {}
+    if (fs.existsSync(configPath)) {
+      try { existing = JSON.parse(fs.readFileSync(configPath, 'utf-8')) } catch { /* ignore — we overwrite */ }
+    }
+    fs.writeFileSync(configPath, JSON.stringify({ ...existing, description }, null, 2))
+  })
 }
 
-function activateProject(projectPath: string): ReturnType<typeof readProjectTree> {
+function activateProject(projectPath: string): ReturnType<typeof readProjectTree> | null {
+  const win = getMainWindow()
+
+  // Validate the path before touching any state or starting side effects
+  try {
+    const stat = fs.statSync(projectPath)
+    if (!stat.isDirectory()) throw new Error('Not a folder')
+  } catch (err) {
+    const message =
+      err instanceof Error && (err as NodeJS.ErrnoException).code === 'ENOENT'
+        ? `Folder not found: "${path.basename(projectPath)}"`
+        : err instanceof Error
+          ? err.message
+          : 'Could not access project folder'
+    win?.webContents.send('project:error', { message, path: projectPath })
+    return null
+  }
+
   currentProjectPath = projectPath
-  ensureIncludeDir(projectPath)
-  ensureAllSectionSymlinks(projectPath)
+  const issues: ProjectIssue[] = []
+
+  try { ensureIncludeDir(projectPath) } catch (err) {
+    issues.push({
+      id: `issue-incl-${Date.now()}`,
+      kind: 'include-dir-missing',
+      title: 'Shared _include directory missing',
+      detail: `Could not create the _include directory. ${err instanceof Error ? err.message : String(err)}`,
+      path: path.join(projectPath, '_include'),
+      repair: 'auto'
+    })
+  }
+
+  try {
+    const symlinkFailures = ensureAllSectionSymlinks(projectPath)
+    for (const fp of symlinkFailures) {
+      issues.push({
+        id: `issue-sym-${fp}`,
+        kind: 'symlink-failed',
+        title: 'Section link broken',
+        detail: `"${path.basename(fp)}" could not be linked to the shared _include directory.`,
+        path: fp,
+        repair: 'auto'
+      })
+    }
+  } catch { /* non-fatal */ }
 
   if (watcher) watcher.close()
   watcher = chokidar
@@ -198,13 +272,18 @@ function activateProject(projectPath: string): ReturnType<typeof readProjectTree
     })
     .on('all', () => sendTreeUpdate())
 
-  const tree = readProjectTree(projectPath)
+  let tree: ReturnType<typeof readProjectTree>
+  try {
+    tree = readProjectTree(projectPath, issues)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to read project'
+    win?.webContents.send('project:error', { message, path: projectPath })
+    return null
+  }
 
   // Generate CLAUDE.md and skills for all sections immediately
-  regenerateAllClaudeMds(projectPath, tree.config.name)
-  regenerateAllSkills(projectPath)
-
-  const win = getMainWindow()
+  try { regenerateAllClaudeMds(projectPath, tree.config.name ?? '') } catch { /* non-fatal */ }
+  try { regenerateAllSkills(projectPath) } catch { /* non-fatal */ }
 
   // Resize window to full size for project view, keeping it centered
   if (win && !win.isMaximized()) {
@@ -221,18 +300,22 @@ function activateProject(projectPath: string): ReturnType<typeof readProjectTree
 
       win.setPosition(newX, newY)
       win.setSize(newWidth, newHeight, true)
-    } catch (err) {
+    } catch {
       // If positioning fails, just resize without repositioning
-      win.setSize(1280, 800, true)
+      try { win?.setSize(1280, 800, true) } catch { /* non-fatal */ }
     }
   }
 
-  addRecentProject(tree)
+  try { addRecentProject(tree) } catch { /* non-fatal */ }
+
+  if (issues.length > 0) {
+    win?.webContents.send('project:issues', issues)
+  }
 
   startPreviewServer(projectPath, (status, port) => {
     win?.webContents.send('preview:status', { status, port: port ?? null })
     if (status === 'ready' && port) {
-      regenerateAllClaudeMds(projectPath, tree.config.name)
+      try { regenerateAllClaudeMds(projectPath, tree.config.name ?? '') } catch { /* non-fatal */ }
     }
   }).catch((err) => {
     win?.webContents.send('preview:status', { status: 'error', error: err.message })

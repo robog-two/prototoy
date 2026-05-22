@@ -32,7 +32,18 @@ export default function PhoneView(): React.ReactElement {
   }
 
   async function handleScreenshot(): Promise<void> {
-    const filePath = await window.api.saveScreenshot()
+    let rect: { x: number; y: number; width: number; height: number } | undefined
+    if (iframeRef.current) {
+      const r = iframeRef.current.getBoundingClientRect()
+      const dpr = window.devicePixelRatio ?? 1
+      rect = {
+        x: Math.round(r.left * dpr),
+        y: Math.round(r.top * dpr),
+        width: Math.round(r.width * dpr),
+        height: Math.round(r.height * dpr)
+      }
+    }
+    const filePath = await window.api.saveScreenshot(rect)
     if (filePath) {
       useStore.getState().showToast('Screenshot saved')
     }
@@ -131,7 +142,7 @@ export default function PhoneView(): React.ReactElement {
 
       <div className="preview-foot">
         <span><span className="dot" /> localhost:{port || '—'}</span>
-        <span>HMR · ready</span>
+        <span>HMR watching</span>
         <div style={{ flex: 1 }} />
         <span style={{ fontFamily: 'var(--font-mono)' }}>{selectedScreenPath || '—'}</span>
       </div>

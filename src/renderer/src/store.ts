@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { ProjectTree, TreeNode, PreviewState } from '../../shared/types'
+import type { ProjectTree, TreeNode, PreviewState, ProjectIssue } from '../../shared/types'
 
 interface AppState {
   tree: ProjectTree | null
@@ -8,6 +8,8 @@ interface AppState {
   previewState: PreviewState
   expandedSections: Set<string>
   toast: string | null
+  projectError: { message: string; path: string } | null
+  projectIssues: ProjectIssue[] | null
 
   setTree: (tree: ProjectTree | null) => void
   setSelectedScreen: (fsPath: string | null, urlPath: string | null) => void
@@ -16,6 +18,8 @@ interface AppState {
   expandSection: (sectionPath: string) => void
   showToast: (message: string) => void
   clearToast: () => void
+  setProjectError: (err: { message: string; path: string } | null) => void
+  setProjectIssues: (issues: ProjectIssue[] | null) => void
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -25,6 +29,8 @@ export const useStore = create<AppState>((set) => ({
   previewState: { port: null, status: 'idle' },
   expandedSections: new Set(),
   toast: null,
+  projectError: null,
+  projectIssues: null,
 
   setTree: (tree) => set({ tree }),
   setSelectedScreen: (fsPath, urlPath) => set({ selectedScreenPath: fsPath, selectedScreenUrlPath: urlPath }),
@@ -44,5 +50,7 @@ export const useStore = create<AppState>((set) => ({
       return { expandedSections: next }
     }),
   showToast: (message) => set({ toast: message }),
-  clearToast: () => set({ toast: null })
+  clearToast: () => set({ toast: null }),
+  setProjectError: (err) => set({ projectError: err }),
+  setProjectIssues: (issues) => set({ projectIssues: issues })
 }))

@@ -28,8 +28,9 @@ export default function Sidebar(): React.ReactElement {
 
   function filterNode(node: TreeNode, query: string): boolean {
     const lowerQuery = query.toLowerCase()
-    return node.name.toLowerCase().includes(lowerQuery) ||
-           (node.children && node.children.some(child => filterNode(child, query)))
+    if (node.name.toLowerCase().includes(lowerQuery)) return true
+    if (node.type === 'section') return node.children.some((child) => filterNode(child, query))
+    return false
   }
 
   function renderFilteredNodes(nodes: TreeNode[], depth: number) {
@@ -47,8 +48,10 @@ export default function Sidebar(): React.ReactElement {
       ))
   }
 
-  const screenCount = tree?.children.reduce((acc, section) => acc + section.children.length, 0) || 0
-  const sectionCount = tree?.children.length || 0
+  const screenCount = tree?.children.reduce((acc, node) => {
+    return acc + (node.type === 'section' ? (node.children?.length ?? 0) : 1)
+  }, 0) ?? 0
+  const sectionCount = tree?.children.filter((n) => n.type === 'section').length ?? 0
 
   return (
     <aside className="sidebar">
@@ -96,10 +99,6 @@ export default function Sidebar(): React.ReactElement {
 
       <div className="sb-foot">
         <span>{screenCount} screens · {sectionCount} collections</span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ width: 6, height: 6, background: 'var(--color-green)', border: '1px solid var(--color-ink)' }} />
-          watching
-        </span>
       </div>
 
       {creating && (
