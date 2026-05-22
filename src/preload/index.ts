@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { ProjectTree, PreviewState, ProjectIssue } from '../shared/types'
+import type { ProjectTree, PreviewState, ProjectIssue, AssetNode } from '../shared/types'
 
 const api = {
   createProject: (name: string, description: string): Promise<ProjectTree | null> =>
@@ -28,9 +28,15 @@ const api = {
   saveScreenshot: (rect?: { x: number; y: number; width: number; height: number }): Promise<string | undefined> => ipcRenderer.invoke('screenshot:save', rect),
 
   listAssets: (): Promise<string[]> => ipcRenderer.invoke('assets:list'),
-  importAssets: (): Promise<string[]> => ipcRenderer.invoke('assets:import'),
-  dropAssets: (filePaths: string[]): Promise<string[]> => ipcRenderer.invoke('assets:drop', filePaths),
-  deleteAsset: (assetName: string): Promise<void> => ipcRenderer.invoke('assets:delete', assetName),
+  listAssetsTree: (): Promise<AssetNode[]> => ipcRenderer.invoke('assets:tree'),
+  importAssets: (targetFolder?: string): Promise<string[]> => ipcRenderer.invoke('assets:import', targetFolder),
+  dropAssets: (filePaths: string[], targetFolder?: string): Promise<string[]> => ipcRenderer.invoke('assets:drop', filePaths, targetFolder),
+  createAssetFolder: (folderRelPath: string): Promise<void> => ipcRenderer.invoke('assets:createFolder', folderRelPath),
+  moveAsset: (assetRelPath: string, newParentRelPath: string): Promise<void> => ipcRenderer.invoke('assets:move', assetRelPath, newParentRelPath),
+  deleteAsset: (assetRelPath: string): Promise<void> => ipcRenderer.invoke('assets:delete', assetRelPath),
+  getAssetPath: (assetRelPath: string): Promise<string> => ipcRenderer.invoke('assets:getPath', assetRelPath),
+  readAssetText: (assetRelPath: string): Promise<string> => ipcRenderer.invoke('assets:readText', assetRelPath),
+  writeAssetText: (assetRelPath: string, content: string): Promise<void> => ipcRenderer.invoke('assets:writeText', assetRelPath, content),
 
   getRecentProjects: (): Promise<any[]> => ipcRenderer.invoke('recent:get'),
 

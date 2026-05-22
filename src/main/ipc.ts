@@ -15,7 +15,14 @@ import {
   ensureAllSectionSymlinks,
   ensureSectionIncludeSymlink,
   listAssets,
-  copyAssetsToInclude
+  listAssetsTree,
+  copyAssetsToInclude,
+  createAssetFolder,
+  moveAsset,
+  deleteAsset,
+  getAssetFilePath,
+  readAssetText,
+  writeAssetText
 } from './fileSystem'
 import type { ProjectIssue } from '../shared/types'
 import { writeSectionClaudeMd, regenerateAllClaudeMds, regenerateAllSkills } from './claudeMd'
@@ -156,7 +163,12 @@ export function registerIpcHandlers(): void {
     return listAssets(currentProjectPath)
   })
 
-  ipcMain.handle('assets:import', async () => {
+  ipcMain.handle('assets:tree', () => {
+    if (!currentProjectPath) return []
+    return listAssetsTree(currentProjectPath)
+  })
+
+  ipcMain.handle('assets:import', async (_, targetFolder?: string) => {
     if (!currentProjectPath) return []
     const { canceled, filePaths } = await dialog.showOpenDialog({
       title: 'Import Assets',
@@ -168,28 +180,50 @@ export function registerIpcHandlers(): void {
       ]
     })
     if (canceled || filePaths.length === 0) return []
-    const names = copyAssetsToInclude(currentProjectPath, filePaths)
+    const names = copyAssetsToInclude(currentProjectPath, filePaths, targetFolder)
     regenerateAllClaudeMds(currentProjectPath, getProjectName())
     return names
   })
 
-  ipcMain.handle('assets:drop', async (_, filePaths: string[]) => {
+  ipcMain.handle('assets:drop', async (_, filePaths: string[], targetFolder?: string) => {
     if (!currentProjectPath || filePaths.length === 0) return []
-    const names = copyAssetsToInclude(currentProjectPath, filePaths)
+    const names = copyAssetsToInclude(currentProjectPath, filePaths, targetFolder)
     regenerateAllClaudeMds(currentProjectPath, getProjectName())
     return names
+  })
+
+  ipcMain.handle('assets:createFolder', async (_, folderRelPath: string) => {
+    if (!currentProjectPath) return
+    createAssetFolder(currentProjectPath, folderRelPath)
+  })
+
+  ipcMain.handle('assets:move', async (_, assetRelPath: string, newParentRelPath: string) => {
+    if (!currentProjectPath) return
+    moveAsset(currentProjectPath, assetRelPath, newParentRelPath)
+  })
+
+  ipcMain.handle('assets:delete', async (_, assetRelPath: string) => {
+    if (!currentProjectPath) return
+    deleteAsset(currentProjectPath, assetRelPath)
+  })
+
+  ipcMain.handle('assets:getPath', async (_, assetRelPath: string) => {
+    if (!currentProjectPath) return ''
+    return getAssetFilePath(currentProjectPath, assetRelPath)
+  })
+
+  ipcMain.handle('assets:readText', async (_, assetRelPath: string) => {
+    if (!currentProjectPath) return ''
+    return readAssetText(currentProjectPath, assetRelPath)
+  })
+
+  ipcMain.handle('assets:writeText', async (_, assetRelPath: string, content: string) => {
+    if (!currentProjectPath) return
+    writeAssetText(currentProjectPath, assetRelPath, content)
   })
 
   ipcMain.handle('recent:get', () => {
     return getRecentProjects()
-  })
-
-  ipcMain.handle('assets:delete', async (_, assetName: string) => {
-    if (!currentProjectPath) return
-    const assetPath = path.join(currentProjectPath, '.prototoy', 'include', assetName)
-    if (fs.existsSync(assetPath)) {
-      fs.unlinkSync(assetPath)
-    }
   })
 
   ipcMain.handle('issue:repairAuto', (_, kind: string, targetPath: string) => {

@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react'
 import { useStore } from '../../store'
 import { Camera, Reload, Claude } from '../Icons'
+import AssetPreview from '../AssetPreview'
 import { relative } from 'path'
 
 const PHONE_W = 292
@@ -10,7 +11,7 @@ const IFRAME_W = PHONE_W * SCALE
 const IFRAME_H = PHONE_H * SCALE
 
 export default function PhoneView(): React.ReactElement {
-  const { previewState, selectedScreenPath, selectedScreenUrlPath } = useStore()
+  const { previewState, selectedScreenPath, selectedScreenUrlPath, activeAsset, setActiveAsset } = useStore()
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const mainRef = useRef<HTMLDivElement>(null)
@@ -64,25 +65,47 @@ export default function PhoneView(): React.ReactElement {
   // Get screen name from path
   const screenName = selectedScreenPath ? selectedScreenPath.split('/').pop() : ''
   const sectionName = selectedScreenPath ? selectedScreenPath.split('/').slice(-2, -1)[0] : ''
+  const isAssetPreviewMode = !!activeAsset
 
   return (
     <div className="main" ref={mainRef}>
       <div className="toolbar">
         <div className="tb-crumb">
-          <span style={{ color: 'var(--color-ink-60)' }}>{sectionName}</span>
-          <span className="crumb-sep">/</span>
-          <span className="crumb-screen">{screenName}</span>
+          {isAssetPreviewMode ? (
+            <>
+              <button
+                className="tb-btn"
+                onClick={() => setActiveAsset(null)}
+                style={{ marginRight: 'var(--sp-4)' }}
+              >
+                ← Back
+              </button>
+              <span style={{ color: 'var(--color-ink-60)' }}>Asset</span>
+              <span className="crumb-sep">/</span>
+              <span className="crumb-screen">{activeAsset.name}</span>
+            </>
+          ) : (
+            <>
+              <span style={{ color: 'var(--color-ink-60)' }}>{sectionName}</span>
+              <span className="crumb-sep">/</span>
+              <span className="crumb-screen">{screenName}</span>
+            </>
+          )}
         </div>
         <div className="tb-spacer" />
-        <button className="tb-btn" onClick={handleReset} disabled={!isReady} title="Reset">
-          <Reload /> <span>Reset</span>
-        </button>
-        <button className="tb-btn" onClick={handleScreenshot} disabled={!isReady || !selectedScreenPath} title="Screenshot">
-          <Camera /> <span>Screenshot</span>
-        </button>
-        <button className="tb-btn primary" onClick={handleOpenInClaude} disabled={!selectedScreenPath} title="Open in Claude Code">
-          <Claude /> <span>Open in Claude Code</span>
-        </button>
+        {!isAssetPreviewMode && (
+          <>
+            <button className="tb-btn" onClick={handleReset} disabled={!isReady} title="Reset">
+              <Reload /> <span>Reset</span>
+            </button>
+            <button className="tb-btn" onClick={handleScreenshot} disabled={!isReady || !selectedScreenPath} title="Screenshot">
+              <Camera /> <span>Screenshot</span>
+            </button>
+            <button className="tb-btn primary" onClick={handleOpenInClaude} disabled={!selectedScreenPath} title="Open in Claude Code">
+              <Claude /> <span>Open in Claude Code</span>
+            </button>
+          </>
+        )}
       </div>
 
       <div
@@ -97,47 +120,51 @@ export default function PhoneView(): React.ReactElement {
           overflow: 'hidden'
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-          <div className="phone-wrap">
-            <div className="phone-meta">
-              {screenName && <span className="dim">{screenName}</span>}
-            </div>
-            <div className="phone">
-              <div className="phone-screen">
-                <div className="phone-status" style={{ zIndex: '10' }}>
-                  <span>9:41</span>
-                  <div className="phone-stat-right">
-                    <svg width="14" height="9" viewBox="0 0 14 9" fill="currentColor"><rect x="0" y="3" width="2" height="6"/><rect x="3" y="2" width="2" height="7"/><rect x="6" y="1" width="2" height="8"/><rect x="9" y="0" width="2" height="9"/></svg>
-                    <svg width="17" height="9" viewBox="0 0 17 9" fill="none" stroke="currentColor" strokeWidth="1"><rect x="0.5" y="0.5" width="13" height="8" /><rect x="2" y="2" width="10" height="5" fill="currentColor"/><line x1="15" y1="3" x2="15" y2="6" /></svg>
+        {isAssetPreviewMode && activeAsset ? (
+          <AssetPreview asset={activeAsset} />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+            <div className="phone-wrap">
+              <div className="phone-meta">
+                {screenName && <span className="dim">{screenName}</span>}
+              </div>
+              <div className="phone">
+                <div className="phone-screen">
+                  <div className="phone-status" style={{ zIndex: '10' }}>
+                    <span>9:41</span>
+                    <div className="phone-stat-right">
+                      <svg width="14" height="9" viewBox="0 0 14 9" fill="currentColor"><rect x="0" y="3" width="2" height="6"/><rect x="3" y="2" width="2" height="7"/><rect x="6" y="1" width="2" height="8"/><rect x="9" y="0" width="2" height="9"/></svg>
+                      <svg width="17" height="9" viewBox="0 0 17 9" fill="none" stroke="currentColor" strokeWidth="1"><rect x="0.5" y="0.5" width="13" height="8" /><rect x="2" y="2" width="10" height="5" fill="currentColor"/><line x1="15" y1="3" x2="15" y2="6" /></svg>
+                    </div>
                   </div>
+                  {isLoading ? (
+                    <LoadingOverlay status={previewState.status} />
+                  ) : isReady ? (
+                    <div className="phone-iframe-container">
+                      <iframe
+                        ref={iframeRef}
+                        title="Screen preview"
+                        sandbox="allow-same-origin allow-scripts allow-forms"
+                        style={{
+                          position: 'absolute',
+                          top: '0',
+                          left: '0',
+                          width: IFRAME_W,
+                          height: IFRAME_H,
+                          border: 'none',
+                          transform: `scale(${1 / SCALE})`,
+                          transformOrigin: 'top left'
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <EmptyState hasScreen={!!selectedScreenPath} />
+                  )}
                 </div>
-                {isLoading ? (
-                  <LoadingOverlay status={previewState.status} />
-                ) : isReady ? (
-                  <div className="phone-iframe-container">
-                    <iframe
-                      ref={iframeRef}
-                      title="Screen preview"
-                      sandbox="allow-same-origin allow-scripts allow-forms"
-                      style={{
-                        position: 'absolute',
-                        top: '0',
-                        left: '0',
-                        width: IFRAME_W,
-                        height: IFRAME_H,
-                        border: 'none',
-                        transform: `scale(${1 / SCALE})`,
-                        transformOrigin: 'top left'
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <EmptyState hasScreen={!!selectedScreenPath} />
-                )}
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="preview-foot">

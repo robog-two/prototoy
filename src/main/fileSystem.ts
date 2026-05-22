@@ -1,7 +1,7 @@
 import { dialog } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
-import type { ProjectConfig, FolderConfig, TreeNode, ProjectTree, SectionNode, ProjectIssue, IssueKind } from '../shared/types'
+import type { ProjectConfig, FolderConfig, TreeNode, ProjectTree, SectionNode, ProjectIssue, IssueKind, AssetNode } from '../shared/types'
 
 let _issueSeq = 0
 function makeIssue(
@@ -265,17 +265,112 @@ export function listAssets(projectPath: string): string[] {
   return fs.readdirSync(assetsPath).filter((f) => !f.startsWith('.'))
 }
 
-export function copyAssetsToInclude(projectPath: string, srcPaths: string[]): string[] {
+export function copyAssetsToInclude(projectPath: string, srcPaths: string[], targetFolder?: string): string[] {
   const assetsDir = path.join(projectPath, '_include', 'assets')
-  fs.mkdirSync(assetsDir, { recursive: true })
+  const destDir = targetFolder ? path.join(assetsDir, targetFolder) : assetsDir
+  fs.mkdirSync(destDir, { recursive: true })
   const copied: string[] = []
   for (const src of srcPaths) {
+    const stat = fs.statSync(src)
     const name = path.basename(src)
-    const dest = path.join(assetsDir, name)
-    fs.copyFileSync(src, dest)
-    copied.push(name)
+    const dest = path.join(destDir, name)
+    if (stat.isDirectory()) {
+      fs.cpSync(src, dest, { recursive: true, force: true })
+    } else {
+      fs.copyFileSync(src, dest)
+    }
+    copied.push(targetFolder ? path.join(targetFolder, name) : name)
   }
   return copied
+}
+
+const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'])
+const FONT_EXTS = new Set(['ttf', 'otf', 'woff', 'woff2'])
+const TEXT_EXTS = new Set(['svg', 'css', 'js', 'json', 'html', 'md', 'txt', 'jsx', 'tsx', 'ts'])
+
+function getAssetType(filename: string): AssetNode['type'] {
+  const ext = filename.split('.').pop()?.toLowerCase() ?? ''
+  if (IMAGE_EXTS.has(ext)) return 'image'
+  if (FONT_EXTS.has(ext)) return 'font'
+  if (TEXT_EXTS.has(ext)) return 'text'
+  return 'other'
+}
+
+export function listAssetsTree(projectPath: string): AssetNode[] {
+  const assetsDir = path.join(projectPath, '_include', 'assets')
+  if (!fs.existsSync(assetsDir)) return []
+
+  function walkDir(dir: string, relBase: string): AssetNode[] {
+    const entries = fs.readdirSync(dir, { withFileTypes: true })
+    return entries
+      .filter((e) => !e.name.startsWith('.'))
+      .map((entry) => {
+        const relPath = path.posix.join(relBase, entry.name)
+        if (entry.isDirectory()) {
+          const children = walkDir(path.join(dir, entry.name), relPath)
+          return {
+            name: entry.name,
+            relPath,
+            type: 'folder',
+            children
+          }
+        }
+        const stat = fs.statSync(path.join(dir, entry.name))
+        return {
+          name: entry.name,
+          relPath,
+          type: getAssetType(entry.name),
+          size: stat.size
+        }
+      })
+  }
+
+  return walkDir(assetsDir, '')
+}
+
+export function createAssetFolder(projectPath: string, folderRelPath: string): void {
+  const assetsDir = path.join(projectPath, '_include', 'assets')
+  const newFolderPath = path.join(assetsDir, folderRelPath)
+  fs.mkdirSync(newFolderPath, { recursive: true })
+}
+
+export function moveAsset(projectPath: string, assetRelPath: string, newParentRelPath: string): void {
+  const assetsDir = path.join(projectPath, '_include', 'assets')
+  const oldPath = path.join(assetsDir, assetRelPath)
+  const name = path.basename(assetRelPath)
+  const newPath = newParentRelPath ? path.join(assetsDir, newParentRelPath, name) : path.join(assetsDir, name)
+  fs.mkdirSync(path.dirname(newPath), { recursive: true })
+  fs.renameSync(oldPath, newPath)
+}
+
+export function deleteAsset(projectPath: string, assetRelPath: string): void {
+  const assetsDir = path.join(projectPath, '_include', 'assets')
+  const assetPath = path.join(assetsDir, assetRelPath)
+  if (!fs.existsSync(assetPath)) return
+
+  const stat = fs.statSync(assetPath)
+  if (stat.isDirectory()) {
+    fs.rmSync(assetPath, { recursive: true, force: true })
+  } else {
+    fs.unlinkSync(assetPath)
+  }
+}
+
+export function getAssetFilePath(projectPath: string, assetRelPath: string): string {
+  const assetsDir = path.join(projectPath, '_include', 'assets')
+  return `file://${path.join(assetsDir, assetRelPath)}`
+}
+
+export function readAssetText(projectPath: string, assetRelPath: string): string {
+  const assetsDir = path.join(projectPath, '_include', 'assets')
+  const assetPath = path.join(assetsDir, assetRelPath)
+  return fs.readFileSync(assetPath, 'utf-8')
+}
+
+export function writeAssetText(projectPath: string, assetRelPath: string, content: string): void {
+  const assetsDir = path.join(projectPath, '_include', 'assets')
+  const assetPath = path.join(assetsDir, assetRelPath)
+  fs.writeFileSync(assetPath, content, 'utf-8')
 }
 
 export function ensureSectionIncludeSymlink(sectionPath: string, projectPath: string): boolean {

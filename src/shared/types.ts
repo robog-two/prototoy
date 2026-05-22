@@ -52,3 +52,11 @@ export interface ProjectIssue {
   repair: 'none' | 'auto' | 'text'
   repairCurrentValue?: string
 }
+
+export interface AssetNode {
+  name: string
+  relPath: string
+  type: 'folder' | 'image' | 'font' | 'text' | 'other'
+  size?: number
+  children?: AssetNode[]
+}

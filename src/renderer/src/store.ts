@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { ProjectTree, TreeNode, PreviewState, ProjectIssue } from '../../shared/types'
+import type { ProjectTree, TreeNode, PreviewState, ProjectIssue, AssetNode } from '../../shared/types'
 
 interface AppState {
   tree: ProjectTree | null
@@ -7,6 +7,9 @@ interface AppState {
   selectedScreenUrlPath: string | null
   previewState: PreviewState
   expandedSections: Set<string>
+  assetTree: AssetNode[]
+  expandedAssetFolders: Set<string>
+  activeAsset: AssetNode | null
   toast: string | null
   projectError: { message: string; path: string } | null
   projectIssues: ProjectIssue[] | null
@@ -16,6 +19,9 @@ interface AppState {
   setPreviewState: (state: Partial<PreviewState>) => void
   toggleSection: (sectionPath: string) => void
   expandSection: (sectionPath: string) => void
+  setAssetTree: (tree: AssetNode[]) => void
+  toggleAssetFolder: (relPath: string) => void
+  setActiveAsset: (asset: AssetNode | null) => void
   showToast: (message: string) => void
   clearToast: () => void
   setProjectError: (err: { message: string; path: string } | null) => void
@@ -28,6 +34,9 @@ export const useStore = create<AppState>((set) => ({
   selectedScreenUrlPath: null,
   previewState: { port: null, status: 'idle' },
   expandedSections: new Set(),
+  assetTree: [],
+  expandedAssetFolders: new Set(),
+  activeAsset: null,
   toast: null,
   projectError: null,
   projectIssues: null,
@@ -49,6 +58,15 @@ export const useStore = create<AppState>((set) => ({
       next.add(sectionPath)
       return { expandedSections: next }
     }),
+  setAssetTree: (tree) => set({ assetTree: tree }),
+  toggleAssetFolder: (relPath) =>
+    set((prev) => {
+      const next = new Set(prev.expandedAssetFolders)
+      if (next.has(relPath)) next.delete(relPath)
+      else next.add(relPath)
+      return { expandedAssetFolders: next }
+    }),
+  setActiveAsset: (asset) => set({ activeAsset: asset }),
   showToast: (message) => set({ toast: message }),
   clearToast: () => set({ toast: null }),
   setProjectError: (err) => set({ projectError: err }),

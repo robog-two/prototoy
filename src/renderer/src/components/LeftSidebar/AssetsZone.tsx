@@ -1,37 +1,39 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useStore } from '../../store'
-
-const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'])
-const FONT_EXTS = new Set(['ttf', 'otf', 'woff', 'woff2'])
-
-function fileTypeThumb(name: string): { text: string; bg: string } {
-  const ext = name.split('.').pop()?.toLowerCase() ?? ''
-  if (IMAGE_EXTS.has(ext)) return { text: 'IMG', bg: 'var(--color-paper-3)' }
-  if (FONT_EXTS.has(ext)) return { text: 'FONT', bg: 'var(--color-paper-3)' }
-  return { text: ext.toUpperCase() || 'FILE', bg: 'var(--color-paper-3)' }
-}
-
-function getFileSize(name: string): string {
-  return '—'
-}
+import AssetFolderNode from './AssetFolderNode'
+import AssetFileNode from './AssetFileNode'
+import type { AssetNode } from '../../../../shared/types'
 
 export default function AssetsZone(): React.ReactElement {
-  const { showToast } = useStore()
-  const [assets, setAssets] = useState<string[]>([])
+  const { assetTree, setAssetTree, showToast } = useStore()
   const [dragOver, setDragOver] = useState(false)
-  const [expanded, setExpanded] = useState(true)
+  const [showNewFolderInput, setShowNewFolderInput] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
   const dragCounter = useRef(0)
 
   useEffect(() => {
-    window.api.listAssets().then(setAssets)
-  }, [])
+    ;(async () => {
+      const tree = await window.api.listAssetsTree()
+      setAssetTree(tree)
+    })()
+  }, [setAssetTree])
 
   async function handleImportClick(): Promise<void> {
     const names = await window.api.importAssets()
     if (names.length > 0) {
-      setAssets((prev) => [...new Set([...prev, ...names])])
+      const updated = await window.api.listAssetsTree()
+      setAssetTree(updated)
       showToast(`${names.length} asset${names.length > 1 ? 's' : ''} imported`)
     }
+  }
+
+  async function handleCreateRootFolder(): Promise<void> {
+    if (!newFolderName.trim()) return
+    await window.api.createAssetFolder(newFolderName)
+    const updated = await window.api.listAssetsTree()
+    setAssetTree(updated)
+    setNewFolderName('')
+    setShowNewFolderInput(false)
   }
 
   function handleDragEnter(e: React.DragEvent): void {
@@ -67,23 +69,69 @@ export default function AssetsZone(): React.ReactElement {
 
     const names = await window.api.dropAssets(paths)
     if (names.length > 0) {
-      setAssets((prev) => [...new Set([...prev, ...names])])
+      const updated = await window.api.listAssetsTree()
+      setAssetTree(updated)
       showToast(`${names.length} asset${names.length > 1 ? 's' : ''} added`)
     }
   }
 
-  async function handleDeleteAsset(name: string): Promise<void> {
-    await window.api.deleteAsset(name)
-    setAssets((prev) => prev.filter((a) => a !== name))
-    showToast('Asset removed')
-  }
+  const totalAssets = countAssets(assetTree)
 
   return (
     <div className="sb-assets">
       <div className="sb-assets-head">
         <span>Art assets</span>
-        <span className="count">{assets.length}</span>
+        <span className="count">{totalAssets}</span>
+        <button
+          title="New folder"
+          onClick={(e) => {
+            e.stopPropagation()
+            setShowNewFolderInput(true)
+          }}
+          style={{
+            border: 'none',
+            background: 'transparent',
+            cursor: 'pointer',
+            fontSize: 'var(--fs-sm)',
+            padding: '0 var(--sp-2)'
+          }}
+        >
+          +
+        </button>
       </div>
+
+      {showNewFolderInput && (
+        <div style={{ padding: 'var(--sp-3) var(--sp-4)' }}>
+          <input
+            type="text"
+            placeholder="Folder name"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleCreateRootFolder()
+              if (e.key === 'Escape') {
+                setShowNewFolderInput(false)
+                setNewFolderName('')
+              }
+            }}
+            onBlur={() => {
+              if (!newFolderName.trim()) {
+                setShowNewFolderInput(false)
+                setNewFolderName('')
+              }
+            }}
+            autoFocus
+            style={{
+              width: '100%',
+              padding: '4px',
+              border: '1px solid var(--color-ink)',
+              background: 'var(--color-paper)',
+              fontFamily: 'var(--font-display)',
+              fontSize: 'var(--fs-xs)'
+            }}
+          />
+        </div>
+      )}
 
       <div
         className={`sb-drop ${dragOver ? 'active' : ''}`}
@@ -97,32 +145,29 @@ export default function AssetsZone(): React.ReactElement {
         {dragOver ? 'drop to import' : 'drop images, svgs, fonts…'}
       </div>
 
-      {assets.length > 0 && (
+      {assetTree.length > 0 && (
         <div className="sb-assets-list">
-          {assets.map((name) => {
-            const thumb = fileTypeThumb(name)
-            return (
-              <div key={name} className="sb-asset">
-                <span className="sb-asset-thumb" style={{ background: thumb.bg }}>
-                  {thumb.text}
-                </span>
-                <span className="sb-asset-name">{name}</span>
-                <span className="sb-asset-size">—</span>
-                <button
-                  className="sb-asset-x"
-                  aria-label="Remove"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleDeleteAsset(name)
-                  }}
-                >
-                  ×
-                </button>
-              </div>
+          {assetTree.map((node) =>
+            node.type === 'folder' ? (
+              <AssetFolderNode key={node.relPath} node={node} depth={0} />
+            ) : (
+              <AssetFileNode key={node.relPath} node={node} depth={0} />
             )
-          })}
+          )}
         </div>
       )}
     </div>
   )
+}
+
+function countAssets(nodes: AssetNode[]): number {
+  let count = 0
+  for (const node of nodes) {
+    if (node.type === 'folder') {
+      count += countAssets(node.children || [])
+    } else {
+      count++
+    }
+  }
+  return count
 }
