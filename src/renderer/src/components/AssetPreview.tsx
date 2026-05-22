@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useStore } from '../store'
 import type { AssetNode } from '../../../shared/types'
 
@@ -19,7 +19,7 @@ export default function AssetPreview({ asset }: Props): React.ReactElement {
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [showSourceEdit, setShowSourceEdit] = useState(false)
-  const filePathRef = useRef<string>('')
+  const [filePath, setFilePath] = useState('')
 
   const ext = asset.name.split('.').pop()?.toLowerCase() ?? ''
   const isImage = IMAGE_EXTS.has(ext)
@@ -29,7 +29,8 @@ export default function AssetPreview({ asset }: Props): React.ReactElement {
 
   useEffect(() => {
     ;(async () => {
-      filePathRef.current = await window.api.getAssetPath(asset.relPath)
+      const path = await window.api.getAssetPath(asset.relPath)
+      setFilePath(path)
       if (isText && !isImage) {
         setContent(await window.api.readAssetText(asset.relPath))
       }
@@ -107,7 +108,7 @@ export default function AssetPreview({ asset }: Props): React.ReactElement {
         }}
       >
         <img
-          src={filePathRef.current}
+          src={filePath}
           alt={asset.name}
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
@@ -140,7 +141,7 @@ export default function AssetPreview({ asset }: Props): React.ReactElement {
         }}
       >
         <img
-          src={filePathRef.current}
+          src={filePath}
           alt={asset.name}
           style={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
@@ -156,15 +157,23 @@ export default function AssetPreview({ asset }: Props): React.ReactElement {
   }
 
   if (isFont) {
+    const fontFamilyName = `custom-font-${asset.relPath.replace(/[^a-z0-9]/gi, '-')}`
     return (
-      <div
-        className="asset-font-view"
-        style={{
-          padding: 'var(--sp-8)',
-          overflow: 'auto',
-          fontFamily: `url('${filePathRef.current}'), serif`
-        }}
-      >
+      <>
+        <style>{`
+          @font-face {
+            font-family: '${fontFamilyName}';
+            src: url('${filePath}');
+          }
+        `}</style>
+        <div
+          className="asset-font-view"
+          style={{
+            padding: 'var(--sp-8)',
+            overflow: 'auto',
+            fontFamily: fontFamilyName
+          }}
+        >
         <div style={{ marginBottom: 'var(--sp-8)' }}>
           <h3 style={{ marginBottom: 'var(--sp-4)', fontFamily: 'var(--font-display)' }}>
             {asset.name}
@@ -188,6 +197,7 @@ export default function AssetPreview({ asset }: Props): React.ReactElement {
           <div style={{ fontSize: '14px', marginTop: 'var(--sp-4)' }}>0123456789 !@#$%^&amp;*()_+-=[]{}|;:&quot;,&lt;&gt;?</div>
         </div>
       </div>
+      </>
     )
   }
 
@@ -230,7 +240,7 @@ export default function AssetPreview({ asset }: Props): React.ReactElement {
       </div>
       <button
         onClick={() => {
-          const filePath = filePathRef.current.replace('file://', '')
+          const filePath = filePath.replace('file://', '')
           window.api.copyToClipboard(filePath)
         }}
         style={{

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useStore } from '../../store'
+import { Folder, Plus } from '../Icons'
 import AssetFileNode from './AssetFileNode'
 import type { AssetNode } from '../../../../shared/types'
 
@@ -15,6 +16,7 @@ export default function AssetFolderNode({ node, depth }: Props): React.ReactElem
   const [dragOverFolder, setDragOverFolder] = useState(false)
 
   const isExpanded = expandedAssetFolders.has(node.relPath)
+  const indentLeft = 12 + depth * 14
 
   async function handleCreateFolder(): Promise<void> {
     if (!newFolderName.trim()) return
@@ -29,6 +31,7 @@ export default function AssetFolderNode({ node, depth }: Props): React.ReactElem
   }
 
   async function handleDeleteFolder(): Promise<void> {
+    if (!confirm(`Delete folder "${node.name}" and all its contents?`)) return
     await window.api.deleteAsset(node.relPath)
     const updated = await window.api.listAssetsTree()
     if (updated) {
@@ -68,27 +71,27 @@ export default function AssetFolderNode({ node, depth }: Props): React.ReactElem
     <div>
       <div
         className="tr-row"
-        style={{ paddingLeft: `${12 + depth * 14}px` }}
+        style={{
+          paddingLeft: indentLeft,
+          background: dragOverFolder ? 'rgba(0,194,234,0.15)' : 'transparent',
+          position: 'relative'
+        }}
         onDragOver={(e) => {
           e.preventDefault()
           setDragOverFolder(true)
         }}
         onDragLeave={() => setDragOverFolder(false)}
         onDrop={handleDrop}
+        onClick={() => toggleAssetFolder(node.relPath)}
       >
-        <span
-          className={`tr-chevron ${isExpanded ? 'open' : ''}`}
-          onClick={(e) => {
-            e.stopPropagation()
-            toggleAssetFolder(node.relPath)
-          }}
-          style={{ cursor: 'pointer' }}
-        >
-          ▼
+        <span className="tr-chevron" style={{ marginLeft: -6 }}>
+          {isExpanded ? '▾' : '▸'}
         </span>
-        <span className="tr-icon">📁</span>
+        <span className="tr-icon">
+          <Folder open={isExpanded} />
+        </span>
         <span className="tr-label">{node.name}</span>
-        <span className="tr-right">
+        <div className="tr-right" onClick={(e) => e.stopPropagation()}>
           <button
             className="tr-icon-btn"
             title="New subfolder"
@@ -97,7 +100,7 @@ export default function AssetFolderNode({ node, depth }: Props): React.ReactElem
               setShowNewFolderInput(true)
             }}
           >
-            +
+            <Plus />
           </button>
           <button
             className="tr-icon-btn"
@@ -106,14 +109,15 @@ export default function AssetFolderNode({ node, depth }: Props): React.ReactElem
               e.stopPropagation()
               handleDeleteFolder()
             }}
+            style={{ color: 'var(--color-pink)' }}
           >
-            ×
+            ✕
           </button>
-        </span>
+        </div>
       </div>
 
       {showNewFolderInput && (
-        <div style={{ paddingLeft: `${12 + (depth + 1) * 14}px`, padding: '4px 8px' }}>
+        <div style={{ paddingLeft: `${indentLeft + 14}px`, padding: '4px 8px' }}>
           <input
             type="text"
             placeholder="Folder name"
@@ -136,12 +140,18 @@ export default function AssetFolderNode({ node, depth }: Props): React.ReactElem
             style={{
               width: '100%',
               padding: '4px',
-              border: '1px solid var(--color-ink)',
+              border: '1.5px solid var(--color-ink)',
               background: 'var(--color-paper)',
               fontFamily: 'var(--font-display)',
               fontSize: 'var(--fs-xs)'
             }}
           />
+        </div>
+      )}
+
+      {dragOverFolder && (
+        <div style={{ position: 'relative', height: 0 }}>
+          <div className="drop-line" />
         </div>
       )}
 
@@ -153,6 +163,11 @@ export default function AssetFolderNode({ node, depth }: Props): React.ReactElem
             ) : (
               <AssetFileNode key={child.relPath} node={child} depth={depth + 1} />
             )
+          )}
+          {node.children.length === 0 && (
+            <div style={{ padding: `4px 12px 4px ${indentLeft + 14}px`, fontSize: 'var(--fs-xs)', color: 'var(--color-ink-60)' }}>
+              Empty folder
+            </div>
           )}
         </div>
       )}

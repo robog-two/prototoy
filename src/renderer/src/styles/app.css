@@ -594,7 +594,10 @@ input:focus, textarea:focus {
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: scroll;
+  max-height: 50%;
 }
 
 .sb-assets-head {
@@ -849,6 +852,20 @@ input:focus, textarea:focus {
 .tb-btn.primary:hover {
   background: var(--color-ink);
   color: var(--color-primary);
+}
+
+.tb-btn.recording {
+  color: #ef4444;
+}
+
+.tb-btn.recording:hover {
+  background: var(--color-ink);
+  color: #ef4444;
+}
+
+@keyframes tbVideoRecBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
 .tb-btn svg {
@@ -1909,11 +1926,7 @@ input:focus, textarea:focus {
   border-color: var(--color-primary);
 }
 
-.sb-assets {
-  max-height: 40vh;
-  overflow-y: auto;
-}
-
 .sb-assets-list {
-  overflow: hidden;
+  overflow-y: auto;
+  min-height: 0;
 }

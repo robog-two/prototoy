@@ -8,19 +8,35 @@ let viteProcess: ReturnType<typeof utilityProcess.fork> | null = null
 let previewPort: number | null = null
 let currentProjectPath: string | null = null
 const previewLogs: string[] = []
+const allLogs: string[] = []
 
 const ANSI_RE = /\x1B\[[0-9;]*m/g
 
 function pushLog(raw: string): void {
   const lines = raw.replace(ANSI_RE, '').split('\n')
   for (const line of lines) {
-    if (line.trim()) previewLogs.push(line)
+    if (line.trim()) {
+      const logLine = `[vite] ${line}`
+      previewLogs.push(line)
+      allLogs.push(logLine)
+    }
   }
   if (previewLogs.length > 1000) previewLogs.splice(0, previewLogs.length - 1000)
+  if (allLogs.length > 2000) allLogs.splice(0, allLogs.length - 2000)
+}
+
+export function addLog(source: string, message: string): void {
+  const logLine = `[${source}] ${message}`
+  allLogs.push(logLine)
+  if (allLogs.length > 2000) allLogs.splice(0, allLogs.length - 2000)
 }
 
 export function getPreviewLogs(): string[] {
   return [...previewLogs]
+}
+
+export function getAllLogs(): string[] {
+  return [...allLogs]
 }
 
 export function getPreviewPort(): number | null {
@@ -101,7 +117,7 @@ export function writePreviewApp(previewDir: string, projectPath: string): void {
   const screens = collectAllScreens(projectPath)
   const srcDir = path.join(previewDir, 'src')
   const relVars = path
-    .relative(srcDir, path.join(projectPath, '_include', 'variables.css'))
+    .relative(srcDir, path.join(projectPath, '_include', 'assets', 'variables.css'))
     .replace(/\\/g, '/')
 
   if (screens.length === 0) {

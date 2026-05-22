@@ -1,5 +1,6 @@
 import React from 'react'
 import { useStore } from '../../store'
+import { File } from '../Icons'
 import type { AssetNode } from '../../../../shared/types'
 
 interface Props {
@@ -34,6 +35,7 @@ function formatFileSize(bytes?: number): string {
 
 export default function AssetFileNode({ node, depth }: Props): React.ReactElement {
   const { activeAsset, setActiveAsset } = useStore()
+  const indentLeft = 12 + depth * 14
 
   async function handleDeleteAsset(): Promise<void> {
     await window.api.deleteAsset(node.relPath)
@@ -44,41 +46,39 @@ export default function AssetFileNode({ node, depth }: Props): React.ReactElemen
   }
 
   const isSelected = activeAsset?.relPath === node.relPath
-  const thumbText = getThumbText(node.type, node.name)
-  const thumbColor = getThumbColor(node.type)
 
   return (
     <div
-      className={`tr-row ${isSelected ? 'asset-selected' : ''}`}
-      style={{ paddingLeft: `${12 + depth * 14}px` }}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.effectAllowed = 'move'
         e.dataTransfer.setData('text/asset-relpath', node.relPath)
       }}
       onClick={() => setActiveAsset(node)}
+      className={`tr-row ${isSelected ? 'selected' : ''}`}
+      style={{ paddingLeft: indentLeft }}
     >
       <span className="tr-indent" />
-      <span
-        className="sb-asset-thumb"
-        style={{ background: thumbColor, color: 'var(--color-ink)', fontSize: '9px' }}
-      >
-        {thumbText}
+      <span className="tr-icon">
+        <File />
       </span>
-      <span className="tr-label" style={{ flex: 1, minWidth: 0 }}>
-        {node.name}
+      <span className="tr-label">{node.name}</span>
+      <span style={{ fontSize: 'var(--fs-xs)', color: 'var(--color-ink-50)', flexShrink: 0 }}>
+        {formatFileSize(node.size)}
       </span>
-      <span className="sb-asset-size">{formatFileSize(node.size)}</span>
-      <button
-        className="sb-asset-x"
-        aria-label="Delete"
-        onClick={(e) => {
-          e.stopPropagation()
-          handleDeleteAsset()
-        }}
-      >
-        ×
-      </button>
+      <div className="tr-right" onClick={(e) => e.stopPropagation()}>
+        <button
+          className="tr-icon-btn"
+          title="Delete asset"
+          onClick={(e) => {
+            e.stopPropagation()
+            handleDeleteAsset()
+          }}
+          style={{ color: 'var(--color-pink)' }}
+        >
+          ✕
+        </button>
+      </div>
     </div>
   )
 }

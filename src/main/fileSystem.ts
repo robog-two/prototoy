@@ -229,7 +229,22 @@ export function ensureIncludeDir(projectPath: string): void {
   if (!fs.existsSync(includePath)) {
     fs.mkdirSync(includePath, { recursive: true })
     fs.mkdirSync(path.join(includePath, 'components'), { recursive: true })
-    fs.writeFileSync(path.join(includePath, 'variables.css'), ':root {\n  /* Add your CSS variables here */\n  --color-primary: #007aff;\n  --color-background: #ffffff;\n  --color-text: #1a1a1a;\n  --spacing-sm: 8px;\n  --spacing-md: 16px;\n  --spacing-lg: 24px;\n  --border-radius: 12px;\n}\n')
+    fs.mkdirSync(path.join(includePath, 'assets'), { recursive: true })
+    fs.writeFileSync(path.join(includePath, 'assets', 'variables.css'), ':root {\n  /* Add your CSS variables here */\n  --color-primary: #007aff;\n  --color-background: #ffffff;\n  --color-text: #1a1a1a;\n  --spacing-sm: 8px;\n  --spacing-md: 16px;\n  --spacing-lg: 24px;\n  --border-radius: 12px;\n}\n')
+  } else {
+    // Migrate old variables.css from _include root to _include/assets
+    const oldVariablesPath = path.join(includePath, 'variables.css')
+    const assetsPath = path.join(includePath, 'assets')
+    if (!fs.existsSync(assetsPath)) {
+      fs.mkdirSync(assetsPath, { recursive: true })
+    }
+    if (fs.existsSync(oldVariablesPath)) {
+      const newVariablesPath = path.join(assetsPath, 'variables.css')
+      if (!fs.existsSync(newVariablesPath)) {
+        fs.copyFileSync(oldVariablesPath, newVariablesPath)
+        fs.unlinkSync(oldVariablesPath)
+      }
+    }
   }
 }
 
@@ -238,7 +253,7 @@ function toPascalCase(str: string): string {
 }
 
 export function parseCssVariables(projectPath: string): Record<string, string> {
-  const cssPath = path.join(projectPath, '_include', 'variables.css')
+  const cssPath = path.join(projectPath, '_include', 'assets', 'variables.css')
   if (!fs.existsSync(cssPath)) return {}
   const content = fs.readFileSync(cssPath, 'utf-8')
   const vars: Record<string, string> = {}
@@ -271,15 +286,19 @@ export function copyAssetsToInclude(projectPath: string, srcPaths: string[], tar
   fs.mkdirSync(destDir, { recursive: true })
   const copied: string[] = []
   for (const src of srcPaths) {
-    const stat = fs.statSync(src)
-    const name = path.basename(src)
-    const dest = path.join(destDir, name)
-    if (stat.isDirectory()) {
-      fs.cpSync(src, dest, { recursive: true, force: true })
-    } else {
-      fs.copyFileSync(src, dest)
+    try {
+      const stat = fs.statSync(src)
+      const name = path.basename(src)
+      const dest = path.join(destDir, name)
+      if (stat.isDirectory()) {
+        fs.cpSync(src, dest, { recursive: true, force: true })
+      } else {
+        fs.copyFileSync(src, dest)
+      }
+      copied.push(targetFolder ? path.join(targetFolder, name) : name)
+    } catch (err) {
+      console.error(`Failed to copy ${src}:`, err)
     }
-    copied.push(targetFolder ? path.join(targetFolder, name) : name)
   }
   return copied
 }

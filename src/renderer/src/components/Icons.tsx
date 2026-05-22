@@ -49,6 +49,21 @@ export const Camera = (): React.ReactElement => (
   </svg>
 )
 
+export const VideoCamera = ({ recording = false }: { recording?: boolean }): React.ReactElement => (
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <rect x="2" y="4.5" width="9" height="7" />
+    <path d="M11 7 L14 5 L14 11 L11 9 Z" fill="currentColor" stroke="none" />
+    <circle
+      cx="5"
+      cy="8"
+      r="0.75"
+      fill={recording ? '#ef4444' : 'currentColor'}
+      stroke="none"
+      style={recording ? { animation: 'tbVideoRecBlink 1s step-start infinite' } : {}}
+    />
+  </svg>
+)
+
 export const Reload = (): React.ReactElement => (
   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
     <path d="M3 8 a5 5 0 1 0 1.5 -3.5" />
@@ -60,5 +75,11 @@ export const Search = (): React.ReactElement => (
   <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
     <circle cx="6" cy="6" r="3.5" />
     <line x1="9" y1="9" x2="12" y2="12" />
+  </svg>
+)
+
+export const File = (): React.ReactElement => (
+  <svg viewBox="0 0 33.982979 33.982979" style={{ fill: 'currentColor', stroke: 'none' }}>
+    <path d="m 5.074387 0.024824 v 33.93333 h 23.834204 L 28.888591 6.868285 20.410039 0.024824 Z m 3.355351 3.355351 h 9.060945 v 8.353495 l 8.046538 -0.0062 0.01189 18.875334 H 8.429435 Z" />
   </svg>
 )

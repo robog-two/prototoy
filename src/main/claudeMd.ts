@@ -24,7 +24,7 @@ export function generateSectionClaudeMd(
       ? Object.entries(cssVars)
           .map(([name, value]) => `- \`${name}\`: ${value}`)
           .join('\n')
-      : '_No variables defined yet. Add them to `_include/variables.css`._'
+      : '_No variables defined yet. Add them to a CSS file in the Art assets panel (e.g., `_include/assets/variables.css`)._'
 
   const componentsSection =
     components.length > 0
@@ -36,9 +36,14 @@ export function generateSectionClaudeMd(
   const assetsSection =
     assets.length > 0
       ? assets
-          .map((a) => `- \`${a}\` — \`import asset from '@include/assets/${a}'\``)
+          .map((a) => {
+            const isCss = a.endsWith('.css')
+            return isCss
+              ? `- \`${a}\` — CSS file: \`import '@include/assets/${a}'\``
+              : `- \`${a}\` — \`import asset from '@include/assets/${a}'\``
+          })
           .join('\n')
-      : '_No assets uploaded yet._'
+      : '_No assets uploaded yet. Add images, fonts, and CSS files (for colors/typography) to the Art assets panel._'
 
   const screensSection =
     screens.length > 0
@@ -76,7 +81,7 @@ ${cssVarsSection}
 
 When working in Claude Code, **stay in your lane**: you may edit screens, shared components, and shared styles upon the user's request. However, you **cannot** edit the external build system, preview server, or Prototoy frame itself — these are managed by the parent app and should never be modified.
 
-- ✅ **You CAN**: Create/edit screens in this section, add shared components to \`_include/components/\`, update \`_include/variables.css\`
+- ✅ **You CAN**: Create/edit screens in this section, add shared components to \`_include/components/\`, add/edit CSS files in \`_include/assets/\`
 - ❌ **You CANNOT**: Modify \`.prototoy/\` config, package.json, build scripts, webpack/vite config, or any Prototoy infrastructure
 
 ## Instructions
@@ -86,6 +91,7 @@ Write each screen as a **default-export React component** in its \`index.tsx\`. 
 - Use **inline CSS styles** and **CSS custom properties** for all styling.
 - Do **NOT** use component libraries (shadcn, Material UI, Tailwind, Chakra, etc.) — this is a custom design prototype and pre-built components will make it feel generic.
 - When you have any question about a **color, spacing, size, border radius, font, or other visual detail**, ask the user rather than guessing or falling back to defaults. The user has a specific design in mind.
+- **Store colors and fonts as CSS variables** in CSS files in the \`_include/assets/\` folder (e.g., \`_include/assets/colors.css\` or \`_include/assets/typography.css\`), then import them in your screens with \`import '@include/assets/colors.css'\`. This keeps design tokens centralized and reusable across all screens.
 
 ### Mobile-First Responsive Design
 

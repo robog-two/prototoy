@@ -1,6 +1,6 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import { useStore } from '../../store'
-import { Camera, Reload, Claude } from '../Icons'
+import { Camera, VideoCamera, Reload, Claude } from '../Icons'
 import AssetPreview from '../AssetPreview'
 import { relative } from 'path'
 
@@ -15,6 +15,10 @@ export default function PhoneView(): React.ReactElement {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const mainRef = useRef<HTMLDivElement>(null)
+  const phoneScreenRef = useRef<HTMLDivElement>(null)
+  const [isRecording, setIsRecording] = useState(false)
+  const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
+  const [clicking, setClicking] = useState(false)
 
   useEffect(() => {
     if (previewState.status !== 'ready' || !previewState.port || !iframeRef.current) return
@@ -26,6 +30,83 @@ export default function PhoneView(): React.ReactElement {
   }, [selectedScreenUrlPath, previewState.status, previewState.port])
 
 
+  const port = previewState.port
+  const isLoading = previewState.status === 'installing' || previewState.status === 'starting'
+  const isReady = previewState.status === 'ready' && !!port
+
+  // Track cursor inside iframe (same-origin, no permission needed)
+  useEffect(() => {
+    const iframe = iframeRef.current
+    if (!iframe || !isReady) return
+
+    const attach = (): (() => void) | undefined => {
+      const doc = iframe.contentDocument
+      if (!doc) return
+
+      const onMove = (e: MouseEvent) => {
+        const screenEl = phoneScreenRef.current
+        if (!screenEl) return
+        const screenRect = screenEl.getBoundingClientRect()
+        const iframeRect = iframe.getBoundingClientRect()
+        // iframe is scaled down by 1/SCALE; convert iframe coords to visual parent coords
+        const visX = e.clientX / SCALE
+        const visY = e.clientY / SCALE
+        setCursor({
+          x: iframeRect.left - screenRect.left + visX,
+          y: iframeRect.top - screenRect.top + visY
+        })
+      }
+      const onLeave = () => setCursor(null)
+      const onDown = () => setClicking(true)
+      const onUp = () => setClicking(false)
+
+      doc.addEventListener('mousemove', onMove)
+      doc.addEventListener('mouseleave', onLeave)
+      doc.addEventListener('mousedown', onDown)
+      doc.addEventListener('mouseup', onUp)
+      return () => {
+        doc.removeEventListener('mousemove', onMove)
+        doc.removeEventListener('mouseleave', onLeave)
+        doc.removeEventListener('mousedown', onDown)
+        doc.removeEventListener('mouseup', onUp)
+      }
+    }
+
+    let cleanup = attach()
+    const onLoad = () => { cleanup?.(); cleanup = attach() }
+    iframe.addEventListener('load', onLoad)
+    return () => {
+      iframe.removeEventListener('load', onLoad)
+      cleanup?.()
+    }
+  }, [isReady])
+
+  // Use the phone-screen div (no CSS transform, overflow:hidden) so coordinates
+  // are stable regardless of window size or DPR — avoids scale() transform confusion.
+  function getPhoneScreenRect() {
+    const el = phoneScreenRef.current
+    if (!el) return undefined
+    const r = el.getBoundingClientRect()
+    const dpr = window.devicePixelRatio ?? 1
+    return {
+      x: Math.round(r.left * dpr),
+      y: Math.round(r.top * dpr),
+      width: Math.round(r.width * dpr),
+      height: Math.round(r.height * dpr)
+    }
+  }
+
+  async function handleToggleRecording(): Promise<void> {
+    if (isRecording) {
+      setIsRecording(false)
+      const filePath = await window.api.stopRecording()
+      if (filePath) useStore.getState().showToast('Recording saved')
+    } else {
+      await window.api.startRecording(getPhoneScreenRect())
+      setIsRecording(true)
+    }
+  }
+
   function handleReset(): void {
     if (iframeRef.current) {
       iframeRef.current.src = iframeRef.current.src
@@ -33,18 +114,7 @@ export default function PhoneView(): React.ReactElement {
   }
 
   async function handleScreenshot(): Promise<void> {
-    let rect: { x: number; y: number; width: number; height: number } | undefined
-    if (iframeRef.current) {
-      const r = iframeRef.current.getBoundingClientRect()
-      const dpr = window.devicePixelRatio ?? 1
-      rect = {
-        x: Math.round(r.left * dpr),
-        y: Math.round(r.top * dpr),
-        width: Math.round(r.width * dpr),
-        height: Math.round(r.height * dpr)
-      }
-    }
-    const filePath = await window.api.saveScreenshot(rect)
+    const filePath = await window.api.saveScreenshot(getPhoneScreenRect())
     if (filePath) {
       useStore.getState().showToast('Screenshot saved')
     }
@@ -57,10 +127,6 @@ export default function PhoneView(): React.ReactElement {
     await window.api.copyToClipboard(`cd "${sectionPath}" && claude --model haiku`)
     useStore.getState().showToast('Command copied — paste in terminal')
   }
-
-  const port = previewState.port
-  const isLoading = previewState.status === 'installing' || previewState.status === 'starting'
-  const isReady = previewState.status === 'ready' && !!port
 
   // Get screen name from path
   const screenName = selectedScreenPath ? selectedScreenPath.split('/').pop() : ''
@@ -101,6 +167,15 @@ export default function PhoneView(): React.ReactElement {
             <button className="tb-btn" onClick={handleScreenshot} disabled={!isReady || !selectedScreenPath} title="Screenshot">
               <Camera /> <span>Screenshot</span>
             </button>
+            <button
+              className={`tb-btn${isRecording ? ' recording' : ''}`}
+              onClick={handleToggleRecording}
+              disabled={!isReady || !selectedScreenPath}
+              title={isRecording ? 'Stop recording' : 'Record GIF'}
+            >
+              <VideoCamera recording={isRecording} />
+              <span>{isRecording ? 'Stop' : 'Record'}</span>
+            </button>
             <button className="tb-btn primary" onClick={handleOpenInClaude} disabled={!selectedScreenPath} title="Open in Claude Code">
               <Claude /> <span>Open in Claude Code</span>
             </button>
@@ -129,7 +204,7 @@ export default function PhoneView(): React.ReactElement {
                 {screenName && <span className="dim">{screenName}</span>}
               </div>
               <div className="phone">
-                <div className="phone-screen">
+                <div className="phone-screen" ref={phoneScreenRef} style={{ cursor: cursor ? 'none' : undefined }}>
                   <div className="phone-status" style={{ zIndex: '10' }}>
                     <span>9:41</span>
                     <div className="phone-stat-right">
@@ -159,6 +234,25 @@ export default function PhoneView(): React.ReactElement {
                     </div>
                   ) : (
                     <EmptyState hasScreen={!!selectedScreenPath} />
+                  )}
+                  {cursor && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: cursor.x,
+                        top: cursor.y,
+                        width: clicking ? 12 : 20,
+                        height: clicking ? 12 : 20,
+                        transform: 'translate(-50%, -50%)',
+                        background: 'rgba(160,160,160,0.35)',
+                        border: '1.5px solid rgba(255,255,255,0.55)',
+                        borderRadius: '50%',
+                        pointerEvents: 'none',
+                        zIndex: 20,
+                        transition: 'width 0.08s ease, height 0.08s ease',
+                        backdropFilter: 'blur(1px)',
+                      }}
+                    />
                   )}
                 </div>
               </div>

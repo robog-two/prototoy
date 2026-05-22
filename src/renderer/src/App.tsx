@@ -32,6 +32,19 @@ export default function App(): React.ReactElement {
   const [logs, setLogs] = useState<string[]>([])
 
   useEffect(() => {
+    // Electron drag-and-drop requires document-level listeners
+    const handleDocumentDragover = (e: DragEvent) => {
+      e.preventDefault()
+      e.dataTransfer!.dropEffect = 'copy'
+    }
+
+    const handleDocumentDrop = (e: DragEvent) => {
+      e.preventDefault()
+    }
+
+    document.addEventListener('dragover', handleDocumentDragover)
+    document.addEventListener('drop', handleDocumentDrop)
+
     const unsubTree = window.api.onTreeChanged((updatedTree: ProjectTree) => setTree(updatedTree))
     const unsubPreview = window.api.onPreviewStatus((state: PreviewState) =>
       setPreviewState(state)
@@ -39,6 +52,8 @@ export default function App(): React.ReactElement {
     const unsubError = window.api.onProjectError((err) => setProjectError(err))
     const unsubIssues = window.api.onProjectIssues((issues) => setProjectIssues(issues))
     return () => {
+      document.removeEventListener('dragover', handleDocumentDragover)
+      document.removeEventListener('drop', handleDocumentDrop)
       unsubTree()
       unsubPreview()
       unsubError()

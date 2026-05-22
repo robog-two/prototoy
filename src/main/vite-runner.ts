@@ -43,7 +43,10 @@ async function main(): Promise<void> {
       fs: { allow: [projectPath, appNodeModules] }
     },
     resolve: {
-      extensions: ['.tsx', '.ts', '.jsx', '.js']
+      extensions: ['.tsx', '.ts', '.jsx', '.js', '.css', '.svg', '.woff', '.woff2'],
+      alias: {
+        '@include': includePath
+      }
     },
     logLevel: 'info'
   })

@@ -1,4 +1,4 @@
-import { ipcMain, BrowserWindow, clipboard, dialog } from 'electron'
+import { ipcMain, BrowserWindow, clipboard, dialog, desktopCapturer } from 'electron'
 import * as path from 'path'
 import * as fs from 'fs'
 import chokidar, { FSWatcher } from 'chokidar'
@@ -24,7 +24,20 @@ import {
   readAssetText,
   writeAssetText
 } from './fileSystem'
-import type { ProjectIssue } from '../shared/types'
+import { addLog, getAllLogs } from './previewServer'
+import type { ProjectIssue, AssetNode } from '../shared/types'
+
+function countAssets(nodes: AssetNode[]): number {
+  let count = 0
+  for (const node of nodes) {
+    if (node.type === 'folder') {
+      count += countAssets(node.children || [])
+    } else {
+      count++
+    }
+  }
+  return count
+}
 import { writeSectionClaudeMd, regenerateAllClaudeMds, regenerateAllSkills } from './claudeMd'
 import {
   startPreviewServer,
@@ -139,10 +152,64 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('preview:getPort', () => getPreviewPort())
-  ipcMain.handle('preview:getLogs', () => getPreviewLogs())
+  ipcMain.handle('preview:getLogs', () => getAllLogs())
 
   ipcMain.handle('clipboard:write', (_, text: string) => {
     clipboard.writeText(text)
+  })
+
+  let recordingInterval: ReturnType<typeof setInterval> | null = null
+  let recordingFrames: { data: Buffer; width: number; height: number }[] = []
+
+  ipcMain.handle('recording:start', (_event, rect?: { x: number; y: number; width: number; height: number }) => {
+    recordingFrames = []
+    if (recordingInterval) clearInterval(recordingInterval)
+    recordingInterval = setInterval(async () => {
+      const win = getMainWindow()
+      if (!win) return
+      const image = await win.webContents.capturePage(rect)
+      const { width, height } = image.getSize()
+      const bgra = image.getBitmap()
+      const rgba = Buffer.alloc(bgra.length)
+      for (let i = 0; i < bgra.length; i += 4) {
+        rgba[i]     = bgra[i + 2]
+        rgba[i + 1] = bgra[i + 1]
+        rgba[i + 2] = bgra[i]
+        rgba[i + 3] = 255
+      }
+      recordingFrames.push({ data: rgba, width, height })
+    }, 100)
+  })
+
+  ipcMain.handle('recording:stop', async () => {
+    if (recordingInterval) {
+      clearInterval(recordingInterval)
+      recordingInterval = null
+    }
+    const frames = recordingFrames
+    recordingFrames = []
+    if (frames.length === 0) return
+
+    const win = getMainWindow()
+    if (!win) return
+    const { canceled, filePath } = await dialog.showSaveDialog(win, {
+      defaultPath: 'recording.gif',
+      filters: [{ name: 'GIF Image', extensions: ['gif'] }]
+    })
+    if (canceled || !filePath) return
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { GIFEncoder, quantize, applyPalette } = require('gifenc')
+    const gif = GIFEncoder()
+    const { width, height } = frames[0]
+    for (const frame of frames) {
+      const palette = quantize(frame.data, 256)
+      const index = applyPalette(frame.data, palette)
+      gif.writeFrame(index, width, height, { palette, delay: 100 })
+    }
+    gif.finish()
+    fs.writeFileSync(filePath, Buffer.from(gif.bytes()))
+    return filePath
   })
 
   ipcMain.handle('screenshot:save', async (_event, rect?: { x: number; y: number; width: number; height: number }) => {
@@ -165,46 +232,91 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('assets:tree', () => {
     if (!currentProjectPath) return []
-    return listAssetsTree(currentProjectPath)
+    try {
+      const tree = listAssetsTree(currentProjectPath)
+      addLog('assets', `Listed asset tree (${countAssets(tree)} items)`)
+      return tree
+    } catch (err) {
+      addLog('assets', `Error listing tree: ${err instanceof Error ? err.message : String(err)}`)
+      throw err
+    }
   })
 
   ipcMain.handle('assets:import', async (_, targetFolder?: string) => {
     if (!currentProjectPath) return []
     const { canceled, filePaths } = await dialog.showOpenDialog({
       title: 'Import Assets',
-      properties: ['openFile', 'multiSelections'],
-      filters: [
-        { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'] },
-        { name: 'Fonts', extensions: ['ttf', 'otf', 'woff', 'woff2'] },
-        { name: 'All Files', extensions: ['*'] }
-      ]
+      properties: ['openFile', 'openDirectory', 'multiSelections']
     })
-    if (canceled || filePaths.length === 0) return []
-    const names = copyAssetsToInclude(currentProjectPath, filePaths, targetFolder)
-    regenerateAllClaudeMds(currentProjectPath, getProjectName())
-    return names
+    if (canceled || filePaths.length === 0) {
+      addLog('assets', 'Import canceled')
+      return []
+    }
+    try {
+      const names = copyAssetsToInclude(currentProjectPath, filePaths, targetFolder)
+      addLog('assets', `Imported ${names.length} item(s) to ${targetFolder || 'root'}`)
+      regenerateAllClaudeMds(currentProjectPath, getProjectName())
+      return names
+    } catch (err) {
+      addLog('assets', `Import error: ${err instanceof Error ? err.message : String(err)}`)
+      throw err
+    }
   })
 
   ipcMain.handle('assets:drop', async (_, filePaths: string[], targetFolder?: string) => {
-    if (!currentProjectPath || filePaths.length === 0) return []
-    const names = copyAssetsToInclude(currentProjectPath, filePaths, targetFolder)
-    regenerateAllClaudeMds(currentProjectPath, getProjectName())
-    return names
+    if (!currentProjectPath || filePaths.length === 0) {
+      addLog('assets', `Drop received with ${filePaths.length} paths to ${targetFolder || 'root'}`)
+      return []
+    }
+    try {
+      addLog('assets', `Dropping ${filePaths.length} item(s): ${filePaths.map(p => path.basename(p)).join(', ')}`)
+      const names = copyAssetsToInclude(currentProjectPath, filePaths, targetFolder)
+      addLog('assets', `Successfully copied ${names.length} item(s)`)
+      regenerateAllClaudeMds(currentProjectPath, getProjectName())
+      return names
+    } catch (err) {
+      addLog('assets', `Drop error: ${err instanceof Error ? err.message : String(err)}`)
+      throw err
+    }
   })
 
   ipcMain.handle('assets:createFolder', async (_, folderRelPath: string) => {
-    if (!currentProjectPath) return
-    createAssetFolder(currentProjectPath, folderRelPath)
+    if (!currentProjectPath) {
+      addLog('assets', 'createFolder: no project path')
+      return
+    }
+    try {
+      addLog('assets', `Creating folder: ${folderRelPath}`)
+      createAssetFolder(currentProjectPath, folderRelPath)
+      addLog('assets', `Folder created: ${folderRelPath}`)
+    } catch (err) {
+      addLog('assets', `createFolder error: ${err instanceof Error ? err.message : String(err)}`)
+      throw err
+    }
   })
 
   ipcMain.handle('assets:move', async (_, assetRelPath: string, newParentRelPath: string) => {
     if (!currentProjectPath) return
-    moveAsset(currentProjectPath, assetRelPath, newParentRelPath)
+    try {
+      addLog('assets', `Moving ${path.basename(assetRelPath)} to ${newParentRelPath || 'root'}`)
+      moveAsset(currentProjectPath, assetRelPath, newParentRelPath)
+      addLog('assets', `Moved: ${assetRelPath} → ${newParentRelPath}`)
+    } catch (err) {
+      addLog('assets', `Move error: ${err instanceof Error ? err.message : String(err)}`)
+      throw err
+    }
   })
 
   ipcMain.handle('assets:delete', async (_, assetRelPath: string) => {
     if (!currentProjectPath) return
-    deleteAsset(currentProjectPath, assetRelPath)
+    try {
+      addLog('assets', `Deleting: ${assetRelPath}`)
+      deleteAsset(currentProjectPath, assetRelPath)
+      addLog('assets', `Deleted: ${assetRelPath}`)
+    } catch (err) {
+      addLog('assets', `Delete error: ${err instanceof Error ? err.message : String(err)}`)
+      throw err
+    }
   })
 
   ipcMain.handle('assets:getPath', async (_, assetRelPath: string) => {

@@ -26,6 +26,8 @@ const api = {
 
   copyToClipboard: (text: string): Promise<void> => ipcRenderer.invoke('clipboard:write', text),
   saveScreenshot: (rect?: { x: number; y: number; width: number; height: number }): Promise<string | undefined> => ipcRenderer.invoke('screenshot:save', rect),
+  startRecording: (rect?: { x: number; y: number; width: number; height: number }): Promise<void> => ipcRenderer.invoke('recording:start', rect),
+  stopRecording: (): Promise<string | undefined> => ipcRenderer.invoke('recording:stop'),
 
   listAssets: (): Promise<string[]> => ipcRenderer.invoke('assets:list'),
   listAssetsTree: (): Promise<AssetNode[]> => ipcRenderer.invoke('assets:tree'),
