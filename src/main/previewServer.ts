@@ -187,8 +187,8 @@ export async function startPreviewServer(
   writePreviewScaffold(previewDir, projectPath)
   onStatus('starting')
 
-  const runnerPath = path.join(__dirname, 'vite-runner.js')
   const appNodeModules = getAppNodeModules()
+  const runnerPath = require.resolve('./vite-runner.js')
 
   return new Promise((resolve, reject) => {
     let settled = false
