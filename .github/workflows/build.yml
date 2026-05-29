@@ -37,7 +37,7 @@ jobs:
       - name: Build and package
         run: npm run icons && npx electron-vite build && npx electron-builder --publish never
 
-      - name: Upload artifacts
+      - name: Upload artifacts and metadata
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
@@ -45,6 +45,7 @@ jobs:
             dist/*.dmg
             dist/*.zip
             dist/*.AppImage
+            dist/*.yml
           draft: false
           generate_release_notes: true
         env:

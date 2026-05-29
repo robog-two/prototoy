@@ -3,6 +3,10 @@
   "version": "0.1.7",
   "description": "UI mockup and wireframe organizer",
   "homepage": "https://robog.net/docs/prototoy",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/robog-two/prototoy.git"
+  },
   "desktopName": "prototoy.desktop",
   "main": "out/main/index.js",
   "scripts": {
