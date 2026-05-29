@@ -4,6 +4,7 @@ import { homedir } from 'os'
 import * as fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
+import log from 'electron-log'
 import { registerIpcHandlers } from './ipc'
 
 let updateReady = false
@@ -11,7 +12,13 @@ let updateReady = false
 function setupUpdater(): void {
   if (is.dev) return
 
+  // Route updater diagnostics to a log file so failures are visible in a
+  // packaged build (macOS: ~/Library/Logs/Prototoy/main.log).
+  log.transports.file.level = 'info'
+  autoUpdater.logger = log
+
   try {
+    log.info(`Checking for updates. Current version: ${app.getVersion()}`)
     autoUpdater.checkForUpdates()
 
     autoUpdater.on('update-available', () => {
@@ -38,8 +45,12 @@ function setupUpdater(): void {
       }
     })
 
+    autoUpdater.on('update-not-available', (info) => {
+      log.info(`No update available. Latest published: ${info?.version ?? 'unknown'}`)
+    })
+
     autoUpdater.on('error', (error) => {
-      console.error('Update error:', error)
+      log.error('Update error:', error)
     })
   } catch (err) {
     console.error('Failed to setup updater:', err)

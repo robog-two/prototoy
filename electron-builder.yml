@@ -25,7 +25,9 @@ mac:
   icon: build/icon/icon.png
   category: public.app-category.developer-tools
   entitlementsInherit: build/entitlements.mac.plist
-  identity: false
+  # Self-signed code-signing identity (CN of the cert in .signing/).
+  # Required for Squirrel.Mac auto-updates; the app is NOT Apple-notarized.
+  identity: Prototoy Self-Signed
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
@@ -34,6 +36,7 @@ mac:
   notarize: false
   target:
     - dmg
+    - zip
 linux:
   icon: build/icon/
   category: Development

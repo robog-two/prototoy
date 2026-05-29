@@ -32,6 +32,11 @@ jobs:
         run: npm version ${GITHUB_REF_NAME#v} --no-git-tag-version || true
 
       - name: Build and package
+        env:
+          # Self-signed cert (base64 .p12) imported into a temp keychain by
+          # electron-builder. Required so Squirrel.Mac can apply auto-updates.
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
         run: npm run icons && npx electron-vite build && npx electron-builder --publish never
 
       - name: Upload macOS artifacts
@@ -40,6 +45,8 @@ jobs:
         with:
           files: |
             dist/*.dmg
+            dist/*.zip
+            dist/*.blockmap
             dist/latest-mac.yml
           draft: false
           generate_release_notes: true

@@ -9,3 +9,6 @@
 !/build/generate-icons.js
 !/build/README.md
 /dist
+
+# Code-signing material — never commit private keys / .p12
+/.signing
