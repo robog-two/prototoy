@@ -1,964 +1,779 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Code Quality Report - Prototoy v0.1.4</title>
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-            body {
-                font-family:
-                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-                    "Helvetica Neue", Arial, sans-serif;
-                line-height: 1.6;
-                color: #333;
-                background: #f5f7fa;
-                padding: 20px;
-            }
-            .container {
-                max-width: 1200px;
-                margin: 0 auto;
-                background: white;
-                border-radius: 8px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-                overflow: hidden;
-            }
-            header {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 40px;
-                text-align: center;
-            }
-            header h1 {
-                font-size: 2.5em;
-                margin-bottom: 10px;
-            }
-            header p {
-                font-size: 1.1em;
-                opacity: 0.95;
-            }
-            .metadata {
-                display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 20px;
-                padding: 40px;
-                background: #f8f9fa;
-                border-bottom: 1px solid #e0e0e0;
-            }
-            .metadata-item {
-                padding: 15px;
-                background: white;
-                border-radius: 6px;
-                border-left: 4px solid #667eea;
-            }
-            .metadata-item strong {
-                display: block;
-                color: #667eea;
-                font-size: 0.9em;
-                margin-bottom: 5px;
-            }
-            .metadata-item span {
-                font-size: 1.2em;
-                color: #333;
-            }
-            .content {
-                padding: 40px;
-            }
-            h2 {
-                color: #667eea;
-                margin-top: 40px;
-                margin-bottom: 20px;
-                padding-bottom: 10px;
-                border-bottom: 2px solid #e0e0e0;
-                font-size: 1.8em;
-            }
-            h3 {
-                color: #333;
-                margin-top: 25px;
-                margin-bottom: 15px;
-                font-size: 1.2em;
-            }
-            .section {
-                margin-bottom: 40px;
-            }
-            .issue {
-                background: #f8f9fa;
-                border-left: 4px solid #ff6b6b;
-                padding: 20px;
-                margin-bottom: 20px;
-                border-radius: 4px;
-            }
-            .issue.critical {
-                border-left-color: #d32f2f;
-                background: #ffebee;
-            }
-            .issue.high {
-                border-left-color: #f57c00;
-                background: #fff3e0;
-            }
-            .severity {
-                display: inline-block;
-                padding: 4px 12px;
-                border-radius: 20px;
-                font-size: 0.85em;
-                font-weight: 600;
-                margin-bottom: 10px;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-            .severity.critical {
-                background: #d32f2f;
-                color: white;
-            }
-            .severity.high {
-                background: #f57c00;
-                color: white;
-            }
-            .code-block {
-                background: #263238;
-                color: #aed581;
-                padding: 15px;
-                border-radius: 4px;
-                overflow-x: auto;
-                margin: 15px 0;
-                font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
-                font-size: 0.9em;
-                line-height: 1.5;
-                white-space: pre-wrap;
-                word-wrap: break-word;
-            }
-            .file-path {
-                color: #90caf9;
-                font-weight: 600;
-                display: block;
-                margin-bottom: 8px;
-            }
-            .action-items {
-                background: #e3f2fd;
-                padding: 30px;
-                border-radius: 6px;
-                margin-bottom: 40px;
-            }
-            .action-item {
-                background: white;
-                padding: 20px;
-                margin-bottom: 15px;
-                border-radius: 4px;
-                border-left: 4px solid #2196f3;
-            }
-            .action-item.critical {
-                border-left-color: #d32f2f;
-            }
-            .action-item.high {
-                border-left-color: #f57c00;
-            }
-            .action-item strong {
-                display: block;
-                margin-bottom: 8px;
-                color: #333;
-                font-size: 1.05em;
-            }
-            .action-number {
-                display: inline-block;
-                width: 28px;
-                height: 28px;
-                background: #667eea;
-                color: white;
-                border-radius: 50%;
-                text-align: center;
-                line-height: 28px;
-                font-weight: bold;
-                margin-right: 10px;
-            }
-            .finding {
-                margin-bottom: 15px;
-            }
-            .finding-title {
-                font-weight: 600;
-                color: #333;
-                margin-bottom: 8px;
-            }
-            .finding-description {
-                color: #666;
-                margin-bottom: 12px;
-            }
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                margin: 20px 0;
-                background: white;
-            }
-            th {
-                background: #667eea;
-                color: white;
-                padding: 12px;
-                text-align: left;
-                font-weight: 600;
-            }
-            td {
-                padding: 12px;
-                border-bottom: 1px solid #e0e0e0;
-            }
-            tr:hover {
-                background: #f8f9fa;
-            }
-            .summary-grid {
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 20px;
-                margin: 30px 0;
-            }
-            .summary-card {
-                background: #f8f9fa;
-                padding: 20px;
-                border-radius: 6px;
-                text-align: center;
-                border-top: 4px solid #667eea;
-            }
-            .summary-card strong {
-                display: block;
-                font-size: 2em;
-                color: #667eea;
-                margin-bottom: 5px;
-            }
-            .summary-card span {
-                display: block;
-                color: #666;
-                font-size: 0.9em;
-            }
-            footer {
-                background: #f8f9fa;
-                padding: 20px;
-                text-align: center;
-                color: #999;
-                border-top: 1px solid #e0e0e0;
-            }
-            .quote {
-                border-left: 3px solid #667eea;
-                margin-left: 10px;
-                padding-left: 15px;
-                color: #666;
-                font-style: italic;
-                margin: 10px 0;
-            }
-            ul {
-                margin-left: 20px;
-            }
-            li {
-                margin-bottom: 8px;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <header>
-                <h1>Code Quality Report</h1>
-                <p>Prototoy v0.1.4 — Comprehensive Multi-Agent Analysis</p>
-            </header>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Code Quality Report - Prototoy v0.1.4</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: #f5f7fa;
+        padding: 20px;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+      header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 40px;
+        text-align: center;
+      }
+      header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+      }
+      header p {
+        font-size: 1.1em;
+        opacity: 0.95;
+      }
+      .metadata {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        padding: 40px;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      .metadata-item {
+        padding: 15px;
+        background: white;
+        border-radius: 6px;
+        border-left: 4px solid #667eea;
+      }
+      .metadata-item strong {
+        display: block;
+        color: #667eea;
+        font-size: 0.9em;
+        margin-bottom: 5px;
+      }
+      .metadata-item span {
+        font-size: 1.2em;
+        color: #333;
+      }
+      .content {
+        padding: 40px;
+      }
+      h2 {
+        color: #667eea;
+        margin-top: 40px;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e0e0e0;
+        font-size: 1.8em;
+      }
+      h3 {
+        color: #333;
+        margin-top: 25px;
+        margin-bottom: 15px;
+        font-size: 1.2em;
+      }
+      .section {
+        margin-bottom: 40px;
+      }
+      .issue {
+        background: #f8f9fa;
+        border-left: 4px solid #ff6b6b;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+      }
+      .issue.critical {
+        border-left-color: #d32f2f;
+        background: #ffebee;
+      }
+      .issue.high {
+        border-left-color: #f57c00;
+        background: #fff3e0;
+      }
+      .severity {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: 600;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .severity.critical {
+        background: #d32f2f;
+        color: white;
+      }
+      .severity.high {
+        background: #f57c00;
+        color: white;
+      }
+      .code-block {
+        background: #263238;
+        color: #aed581;
+        padding: 15px;
+        border-radius: 4px;
+        overflow-x: auto;
+        margin: 15px 0;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 0.9em;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+      .file-path {
+        color: #90caf9;
+        font-weight: 600;
+        display: block;
+        margin-bottom: 8px;
+      }
+      .action-items {
+        background: #e3f2fd;
+        padding: 30px;
+        border-radius: 6px;
+        margin-bottom: 40px;
+      }
+      .action-item {
+        background: white;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-radius: 4px;
+        border-left: 4px solid #2196f3;
+      }
+      .action-item.critical {
+        border-left-color: #d32f2f;
+      }
+      .action-item.high {
+        border-left-color: #f57c00;
+      }
+      .action-item strong {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+        font-size: 1.05em;
+      }
+      .action-number {
+        display: inline-block;
+        width: 28px;
+        height: 28px;
+        background: #667eea;
+        color: white;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 28px;
+        font-weight: bold;
+        margin-right: 10px;
+      }
+      .finding {
+        margin-bottom: 15px;
+      }
+      .finding-title {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+      }
+      .finding-description {
+        color: #666;
+        margin-bottom: 12px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+        background: white;
+      }
+      th {
+        background: #667eea;
+        color: white;
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+      }
+      td {
+        padding: 12px;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      tr:hover {
+        background: #f8f9fa;
+      }
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin: 30px 0;
+      }
+      .summary-card {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 6px;
+        text-align: center;
+        border-top: 4px solid #667eea;
+      }
+      .summary-card strong {
+        display: block;
+        font-size: 2em;
+        color: #667eea;
+        margin-bottom: 5px;
+      }
+      .summary-card span {
+        display: block;
+        color: #666;
+        font-size: 0.9em;
+      }
+      footer {
+        background: #f8f9fa;
+        padding: 20px;
+        text-align: center;
+        color: #999;
+        border-top: 1px solid #e0e0e0;
+      }
+      .quote {
+        border-left: 3px solid #667eea;
+        margin-left: 10px;
+        padding-left: 15px;
+        color: #666;
+        font-style: italic;
+        margin: 10px 0;
+      }
+      ul {
+        margin-left: 20px;
+      }
+      li {
+        margin-bottom: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Code Quality Report</h1>
+        <p>Prototoy v0.1.4 — Comprehensive Multi-Agent Analysis</p>
+      </header>
 
-            <div class="metadata">
-                <div class="metadata-item">
-                    <strong>Project</strong><span>Prototoy</span>
-                </div>
-                <div class="metadata-item">
-                    <strong>Version</strong><span>0.1.4</span>
-                </div>
-                <div class="metadata-item">
-                    <strong>Analysis Date</strong><span>May 28, 2026</span>
-                </div>
-                <div class="metadata-item">
-                    <strong>Agents Used</strong><span>4</span>
-                </div>
-            </div>
+      <div class="metadata">
+        <div class="metadata-item"><strong>Project</strong><span>Prototoy</span></div>
+        <div class="metadata-item"><strong>Version</strong><span>0.1.4</span></div>
+        <div class="metadata-item"><strong>Analysis Date</strong><span>May 28, 2026</span></div>
+        <div class="metadata-item"><strong>Agents Used</strong><span>4</span></div>
+      </div>
 
-            <div class="content">
-                <h2>Executive Summary</h2>
+      <div class="content">
+        <h2>Executive Summary</h2>
 
-                <div class="summary-grid">
-                    <div class="summary-card">
-                        <strong>3</strong><span>Critical Issues</span>
-                    </div>
-                    <div class="summary-card">
-                        <strong>11</strong><span>High Severity</span>
-                    </div>
-                    <div class="summary-card">
-                        <strong>27+</strong><span>Medium Issues</span>
-                    </div>
-                </div>
-
-                <p>
-                    Note: This report was generated with agentic programming.
-                    I've reviewed the report manually and confirmed that none of
-                    these issues affect the final product, mostly because it is
-                    not attached to a backend/the internet. Hooray for local
-                    first architecture! If you want to do XSS or escape the
-                    browser sandbox on your own app, go right ahead. I'm going
-                    to be chipping away at some of these larger
-                    design/architecture issues, but I'm working full time this
-                    summer so it might be a bit slow.
-                </p>
-
-                <h2>
-                    Critical Issues (human review: non-critical architecture
-                    problems)
-                </h2>
-                <div class="section">
-                    <div class="issue critical">
-                        <span class="severity critical">Critical</span>
-                        <div class="finding">
-                            <div class="finding-title">
-                                Electron Sandbox Disabled
-                            </div>
-                            <div class="finding-description">
-                                The application disables Electron sandbox and
-                                web security, allowing renderer process direct
-                                Node.js access.
-                            </div>
-                            <div class="code-block">
-                                <span class="file-path"
-                                >src/main/index.ts (lines 65-66)</span>
-                                webPreferences: { sandbox: false, // CRITICAL
-                                SECURITY ISSUE webSecurity: false // ADDITIONAL
-                                SECURITY ISSUE }
-                            </div>
-                            <div class="quote">
-                                <strong>Impact:</strong> Renderer has full
-                                Node.js access. XSS vulnerability becomes full
-                                system compromise.
-                            </div>
-                            <div class="quote">
-                                <strong>Human:</strong> Not sandboxed because
-                                there's weird stuff happening with vite to run
-                                the hot-reload dev server from within the app
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="issue critical">
-                        <span class="severity critical">Critical</span>
-                        <div class="finding">
-                            <div class="finding-title">
-                                Path Traversal Vulnerability in Asset Operations
-                            </div>
-                            <div class="finding-description">
-                                File paths from renderer are not validated for
-                                directory escape attempts using ".." sequences.
-                            </div>
-                            <div class="code-block">
-                                <span class="file-path"
-                                >src/main/fileSystem.ts (line 380)</span>
-                                export function getAssetFilePath( projectPath:
-                                string, assetRelPath: string ): string { const
-                                assetsDir = path.join(projectPath, '_include',
-                                'assets') return `file://${path.join(assetsDir,
-                                assetRelPath)}` }
-                            </div>
-                            <div class="quote">
-                                <strong>Risk:</strong> Attacker can pass
-                                assetRelPath = "../../sensitive-data" to escape
-                                assets directory and access arbitrary files.
-                            </div>
-                            <div class="quote">
-                                <strong>Human:</strong> Probably real, but you
-                                will be accessing paths on your computer from...
-                                your computer. There's no internet and you write
-                                the prototypes you run, so this is fine. Don't
-                                open untrusted projects.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="issue critical">
-                        <span class="severity critical">Critical</span>
-                        <div class="finding">
-                            <div class="finding-title">
-                                Unvalidated IPC Handlers Expose File Operations
-                            </div>
-                            <div class="finding-description">
-                                IPC handlers perform file operations without
-                                input validation or permission checks.
-                            </div>
-                            <div class="code-block">
-                                <span class="file-path"
-                                >src/main/ipc.ts (lines 281-296)</span>
-                                ipcMain.handle('assets:drop', async ( _,
-                                filePaths: string[], targetFolder?: string ) =>
-                                { if (!currentProjectPath) return [] // ...
-                                proceeds with file operations without validation
-                                }
-                            </div>
-                            <div class="quote">
-                                <strong>Issue:</strong> Handler accepts
-                                arbitrary paths. Combined with sandbox:false,
-                                allows unrestricted file system access.
-                            </div>
-                            <div class="quote">
-                                <strong>Human:</strong> Again, if your own code wants to escape the sandbox, it can. But it's code you put there.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <h2>High Severity Issues</h2>
-                <div class="section">
-                    <div class="issue high">
-                        <span class="severity high">High</span>
-                        <div class="finding">
-                            <div class="finding-title">
-                                No Input Validation Framework
-                            </div>
-                            <div class="code-block">
-                                <span class="file-path"
-                                >src/preload/index.ts (lines 69-73)</span>
-                                repairIssueAuto: (kind: string, targetPath:
-                                string): Promise&lt;void&gt; =>
-                                ipcRenderer.invoke('issue:repairAuto', kind,
-                                targetPath)
-                            </div>
-                            <div class="quote">
-                                <strong>Problem:</strong> No runtime validation
-                                that kind matches IssueKind enum. Malformed data
-                                fails only at runtime.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="issue high">
-                        <span class="severity high">High</span>
-                        <div class="finding">
-                            <div class="finding-title">
-                                File Watcher Resource Leak
-                            </div>
-                            <div class="code-block">
-                                <span class="file-path"
-                                >src/main/ipc.ts (lines 426-438)</span>
-                                watcher = chokidar.watch(projectPath, {...})
-                                .on('all', () => sendTreeUpdate()) // If
-                                readProjectTree() throws later, watcher persists
-                            </div>
-                            <div class="quote">
-                                <strong>Leak:</strong> Multiple project
-                                activations leak watchers. Each watcher consumes
-                                memory and file descriptors.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="issue high">
-                        <span class="severity high">High</span>
-                        <div class="finding">
-                            <div class="finding-title">
-                                Unbounded Memory in Recording
-                            </div>
-                            <div class="code-block">
-                                <span class="file-path"
-                                >src/main/ipc.ts (lines 175-195)</span>
-                                recordingInterval = setInterval(async () => {
-                                const rgba = Buffer.alloc(bgra.length) // NEW
-                                BUFFER EVERY 100ms recordingFrames.push({...})
-                                // UNBOUNDED ARRAY })
-                            </div>
-                            <div class="quote">
-                                <strong>Math:</strong> For 390x844 image:
-                                1.3MB/frame × 10fps = 13MB/sec. 5 min recording
-                                = 3.9GB RAM.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="issue high">
-                        <span class="severity high">High</span>
-                        <div class="finding">
-                            <div class="finding-title">
-                                Unsafe JSON Parsing Without Validation
-                            </div>
-                            <div class="code-block">
-                                <span class="file-path"
-                                >src/main/fileSystem.ts (line 221)</span>
-                                config: FolderConfig = fs.existsSync(configPath)
-                                ? JSON.parse(fs.readFileSync(configPath,
-                                'utf-8')) : { description: '' } // No validation
-                            </div>
-                            <div class="quote">
-                                <strong>Issue:</strong> Cast assumes correct
-                                structure. Malformed files silently fail or
-                                crash later.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="issue high">
-                        <span class="severity high">High</span>
-                        <div class="finding">
-                            <div class="finding-title">
-                                React useEffect Dependency Array Bugs
-                            </div>
-                            <div class="code-block">
-                                <span class="file-path"
-                                >src/renderer/src/App.tsx (lines 132-134)</span>
-                                useEffect(() => {
-                                bottomRef.current?.scrollIntoView() }, []) //
-                                Missing [logs] dependency
-                            </div>
-                            <div class="quote">
-                                <strong>Bug:</strong> Effect runs only on mount.
-                                New logs never trigger scroll, defeating the
-                                feature.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="issue high">
-                        <span class="severity high">High</span>
-                        <div class="finding">
-                            <div class="finding-title">
-                                Immutable State Bypassed in Zustand
-                            </div>
-                            <div class="code-block">
-                                <span class="file-path"
-                                >src/renderer/src/store.ts (lines 36, 38)</span>
-                                expandedSections: new Set()
-                                expandedAssetFolders: new Set()
-                            </div>
-                            <div class="quote">
-                                <strong>Risk:</strong> Direct Set mutations
-                                bypass Zustand's reactivity. UI becomes stale.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="issue high">
-                        <span class="severity high">High</span>
-                        <div class="finding">
-                            <div class="finding-title">No Test Framework</div>
-                            <div class="code-block">
-                                <span class="file-path"
-                                >package.json (scripts)</span>
-                                "scripts": { "dev": "...", "build": "...", // No
-                                "test" script }
-                            </div>
-                            <div class="quote">
-                                <strong>Impact:</strong> Zero test coverage.
-                                Silent failures in file ops and state mutations
-                                go undetected.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="issue high">
-                        <span class="severity high">High</span>
-                        <div class="finding">
-                            <div class="finding-title">
-                                Error Handling with No Recovery
-                            </div>
-                            <div class="code-block">
-                                <span class="file-path"
-                                >src/renderer/src/components/AssetPreview.tsx</span>
-                                ;(async () => { const path = await
-                                window.api.getAssetPath(asset.relPath)
-                                setFilePath(path) if (isText) setContent(await
-                                window.api.readAssetText(...)) })() // No error
-                                handling
-                            </div>
-                            <div class="quote">
-                                <strong>UX Impact:</strong> If API fails,
-                                preview shows nothing with no error feedback.
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="issue high">
-                        <span class="severity high">High</span>
-                        <div class="finding">
-                            <div class="finding-title">
-                                Weak Typing for Cross-Process Messages
-                            </div>
-                            <div class="code-block">
-                                <span class="file-path"
-                                >src/renderer/src/components/PhoneView/PhoneView.tsx</span>
-                                const onMessage = (e: MessageEvent) => { const d
-                                = e.data if (!d || !d.__prototoy) return //
-                                Assumes d.type, d.x, d.y without validation }
-                            </div>
-                            <div class="quote">
-                                <strong>Bug:</strong> No schema validation.
-                                Malformed messages crash the app silently.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <h2>Medium Severity Issues Summary</h2>
-                <p>Analysis identified 27+ medium-severity issues across:</p>
-                <ul>
-                    <li>
-                        <strong>Code Duplication (3):</strong> Asset paths
-                        repeated 9 times, directory walking duplicated in 4
-                        functions
-                    </li>
-                    <li>
-                        <strong>Type Safety (5):</strong> Missing discriminated
-                        unions, inlined types, 10 unsafe 'any' casts
-                    </li>
-                    <li>
-                        <strong>Performance (4):</strong> No tree diffing,
-                        synchronous I/O blocks UI, stale string parsing
-                    </li>
-                    <li>
-                        <strong>API Design (3):</strong> Inconsistent return
-                        types, function signature mismatch, silent error
-                        suppression
-                    </li>
-                    <li>
-                        <strong>Security (3):</strong> No path sanitization,
-                        unspecified origin in postMessage, unsafe dynamic
-                        require
-                    </li>
-                    <li>
-                        <strong>Other (9):</strong> Hardcoded dimensions,
-                        unhandled promise rejections, missing preload in dev
-                    </li>
-                </ul>
-
-                <h2
-                    style="background: #e3f2fd; padding: 30px; margin: 40px -40px 30px -40px"
-                >
-                    ✅ Top 10 Action Items
-                </h2>
-
-                <div class="action-items">
-                    <div class="action-item critical">
-                        <span class="action-number">1</span>
-                        <strong>CRITICAL: Enable Electron Sandbox and Web
-                            Security</strong>
-                        <p>
-                            <strong>File:</strong> src/main/index.ts (lines
-                            65-66)
-                        </p>
-                        <p>
-                            <strong>Action:</strong> Set sandbox: true and
-                            webSecurity: true. Implement preload context bridge.
-                        </p>
-                        <p>
-                            <strong>Impact:</strong> Prevents full-system
-                            compromise via XSS.
-                        </p>
-                        <p>
-                            <strong>Effort:</strong> 4-6 hours | <strong
-                            >Blocks:</strong> All other security fixes
-                        </p>
-                    </div>
-
-                    <div class="action-item critical">
-                        <span class="action-number">2</span>
-                        <strong>CRITICAL: Implement Input Validation on All IPC
-                            Handlers</strong>
-                        <p>
-                            <strong>Files:</strong> src/main/ipc.ts,
-                            src/main/fileSystem.ts
-                        </p>
-                        <p>
-                            <strong>Action:</strong> Add Zod schemas for IPC
-                            parameters. Validate paths stay within project.
-                            Validate enums.
-                        </p>
-                        <p>
-                            <strong>Impact:</strong> Prevents path traversal,
-                            malformed data, invalid state.
-                        </p>
-                        <p><strong>Effort:</strong> 6-8 hours</p>
-                    </div>
-
-                    <div class="action-item critical">
-                        <span class="action-number">3</span>
-                        <strong>CRITICAL: Add Runtime Schema Validation</strong>
-                        <p><strong>Scope:</strong> Project-wide</p>
-                        <p>
-                            <strong>Action:</strong> Install Zod. Define schemas
-                            for ProjectConfig, FolderConfig, TreeNode,
-                            PreviewState. Validate all JSON.parse().
-                        </p>
-                        <p>
-                            <strong>File:</strong> Create src/shared/schemas.ts
-                        </p>
-                        <p>
-                            <strong>Impact:</strong> Catches malformed configs
-                            before cascading failures.
-                        </p>
-                        <p>
-                            <strong>Effort:</strong> 8-10 hours | <strong
-                            >Dependencies:</strong> Action 2
-                        </p>
-                    </div>
-
-                    <div class="action-item high">
-                        <span class="action-number">4</span>
-                        <strong>Fix React useEffect Dependency Arrays</strong>
-                        <p>
-                            <strong>Files:</strong> src/renderer/src/App.tsx,
-                            src/renderer/src/components/*.tsx
-                        </p>
-                        <p>
-                            <strong>Issues:</strong> App.tsx line 132 add
-                            [logs], AssetPreview.tsx line 30 fix isImage,
-                            PhoneView.tsx line 71 document closure
-                        </p>
-                        <p>
-                            <strong>Impact:</strong> Fixes stale closures,
-                            auto-scroll, missed updates.
-                        </p>
-                        <p><strong>Effort:</strong> 2-3 hours</p>
-                    </div>
-
-                    <div class="action-item high">
-                        <span class="action-number">5</span>
-                        <strong>Implement Test Framework (Vitest)</strong>
-                        <p><strong>Scope:</strong> Project-wide</p>
-                        <p>
-                            <strong>Action:</strong> Install vitest. Create
-                            tests for IPC handlers, file ops, type validation.
-                            Add test npm script.
-                        </p>
-                        <p>
-                            <strong>Target:</strong> 60%+ coverage for critical
-                            paths
-                        </p>
-                        <p>
-                            <strong>Effort:</strong> 12-16 hours initial +
-                            ongoing
-                        </p>
-                    </div>
-
-                    <div class="action-item high">
-                        <span class="action-number">6</span>
-                        <strong>Extract Duplicate Asset Path Helpers</strong>
-                        <p>
-                            <strong>File:</strong> Create src/main/assetPaths.ts
-                        </p>
-                        <p>
-                            <strong>Action:</strong> Move 9 instances of
-                            path.join(projectPath, '_include', 'assets') to
-                            constant function.
-                        </p>
-                        <p>
-                            <strong>Impact:</strong> Single source of truth.
-                            Easier to update path structure.
-                        </p>
-                        <p><strong>Effort:</strong> 1-2 hours</p>
-                    </div>
-
-                    <div class="action-item high">
-                        <span class="action-number">7</span>
-                        <strong>Fix Resource Leaks: Watchers and
-                            Buffers</strong>
-                        <p>
-                            <strong>Files:</strong> src/main/ipc.ts (lines
-                            426-438, 175-195)
-                        </p>
-                        <p>
-                            <strong>Changes:</strong> Close watcher on error.
-                            Use circular buffer (max 300 frames). Reuse typed
-                            array pool for frames.
-                        </p>
-                        <p>
-                            <strong>Impact:</strong> Prevents memory exhaustion
-                            on long sessions.
-                        </p>
-                        <p><strong>Effort:</strong> 3-4 hours</p>
-                    </div>
-
-                    <div class="action-item medium">
-                        <span class="action-number">8</span>
-                        <strong>Create Type-Safe IPC Interface</strong>
-                        <p>
-                            <strong>File:</strong> Create src/shared/ipcTypes.ts
-                        </p>
-                        <p>
-                            <strong>Action:</strong> Define TypeScript
-                            interfaces for all IPC handlers with explicit types.
-                            Use type literals for channel names.
-                        </p>
-                        <p>
-                            <strong>Impact:</strong> Eliminates typos. Ensures
-                            signatures match.
-                        </p>
-                        <p>
-                            <strong>Effort:</strong> 4-6 hours | <strong
-                            >Dependencies:</strong> Action 3
-                        </p>
-                    </div>
-
-                    <div class="action-item medium">
-                        <span class="action-number">9</span>
-                        <strong>Add Error Boundaries and Error Handling</strong>
-                        <p>
-                            <strong>Files:</strong> src/renderer/src/App.tsx,
-                            all components
-                        </p>
-                        <p>
-                            <strong>Actions:</strong> Add React ErrorBoundary.
-                            Add error states to async components. Show toast
-                            notifications on failures. Structured logging.
-                        </p>
-                        <p>
-                            <strong>Impact:</strong> Users see feedback instead
-                            of silent failures.
-                        </p>
-                        <p><strong>Effort:</strong> 5-7 hours</p>
-                    </div>
-
-                    <div class="action-item medium">
-                        <span class="action-number">10</span>
-                        <strong>Enable Strict TypeScript and ESLint</strong>
-                        <p>
-                            <strong>Files:</strong> tsconfig.json, create
-                            .eslintrc
-                        </p>
-                        <p>
-                            <strong>Actions:</strong> Set strict: true in
-                            tsconfig. Install ESLint + typescript-eslint. Add
-                            Prettier. Setup lint-staged pre-commit.
-                        </p>
-                        <p>
-                            <strong>Impact:</strong> Prevents 80% of issues
-                            before code review.
-                        </p>
-                        <p>
-                            <strong>Effort:</strong> 3-4 hours setup + 2-3 hours
-                            fixing existing violations
-                        </p>
-                    </div>
-                </div>
-
-                <h2>Implementation Roadmap</h2>
-                <h3>Phase 1: Security (Blocking) — Week 1</h3>
-                <ul>
-                    <li>
-                        Actions 1, 2, 3: Enable sandbox, validate inputs, Zod
-                        schemas
-                    </li>
-                    <li>Estimated: 18-24 hours</li>
-                </ul>
-
-                <h3>Phase 2: Quality Foundations — Week 2</h3>
-                <ul>
-                    <li>
-                        Actions 4, 5, 6, 7: Fix bugs, add tests, refactor
-                        duplicates, fix leaks
-                    </li>
-                    <li>Estimated: 20-28 hours</li>
-                </ul>
-
-                <h3>Phase 3: Polish & Best Practices — Week 3</h3>
-                <ul>
-                    <li>
-                        Actions 8, 9, 10: Type-safe IPC, error handling, strict
-                        TS/ESLint
-                    </li>
-                    <li>Estimated: 15-20 hours</li>
-                </ul>
-
-                <h2>Issue Breakdown Table</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Category</th>
-                            <th>Count</th>
-                            <th>Critical</th>
-                            <th>High</th>
-                            <th>Medium</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>Security</strong></td>
-                            <td>7</td>
-                            <td>3</td>
-                            <td>2</td>
-                            <td>2</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Type Safety</strong></td>
-                            <td>8</td>
-                            <td>0</td>
-                            <td>2</td>
-                            <td>6</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Error Handling</strong></td>
-                            <td>6</td>
-                            <td>0</td>
-                            <td>2</td>
-                            <td>4</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Performance</strong></td>
-                            <td>7</td>
-                            <td>0</td>
-                            <td>1</td>
-                            <td>6</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Code Quality</strong></td>
-                            <td>12</td>
-                            <td>0</td>
-                            <td>3</td>
-                            <td>9</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Testing</strong></td>
-                            <td>1</td>
-                            <td>0</td>
-                            <td>1</td>
-                            <td>0</td>
-                        </tr>
-                        <tr style="background: #f0f0f0; font-weight: bold">
-                            <td><strong>TOTAL</strong></td>
-                            <td><strong>41</strong></td>
-                            <td><strong>3</strong></td>
-                            <td><strong>11</strong></td>
-                            <td><strong>27</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <h2>Analysis Methodology</h2>
-                <p>
-                    <strong>Agent 1 (Main Process):</strong> Reviewed src/main/*
-                    for security, error handling, performance, resource
-                    management, and API design — 27 findings
-                </p>
-                <p>
-                    <strong>Agent 2 (Renderer/UI):</strong> Analyzed React
-                    components for hooks misuse, performance, type safety,
-                    accessibility, and error handling — 22 findings
-                </p>
-                <p>
-                    <strong>Agent 3 (Type System):</strong> Examined types.ts,
-                    preload security, schema validation, and cross-process type
-                    safety — 12 findings
-                </p>
-                <p>
-                    <strong>Agent 4 (Architecture):</strong> Reviewed
-                    dependencies, build configuration, CI/CD, and testing
-                    infrastructure — 10 findings
-                </p>
-            </div>
-
-            <footer>
-                <p>
-                    Code Quality Report for Prototoy v0.1.4 | Generated May 28,
-                    2026
-                </p>
-                <p>
-                    Multi-Agent Analysis: Main Process | Renderer | Type System
-                    | Architecture
-                </p>
-            </footer>
+        <div class="summary-grid">
+          <div class="summary-card"><strong>3</strong><span>Critical Issues</span></div>
+          <div class="summary-card"><strong>11</strong><span>High Severity</span></div>
+          <div class="summary-card"><strong>27+</strong><span>Medium Issues</span></div>
         </div>
-    </body>
+
+        <p>
+          Note: This report was generated with agentic programming. I've reviewed the report
+          manually and confirmed that none of these issues affect the final product, mostly because
+          it is not attached to a backend/the internet. Hooray for local first architecture! If you
+          want to do XSS or escape the browser sandbox on your own app, go right ahead. I'm going to
+          be chipping away at some of these larger design/architecture issues, but I'm working full
+          time this summer so it might be a bit slow.
+        </p>
+
+        <h2>Critical Issues (human review: non-critical architecture problems)</h2>
+        <div class="section">
+          <div class="issue critical">
+            <span class="severity critical">Critical</span>
+            <div class="finding">
+              <div class="finding-title">Electron Sandbox Disabled</div>
+              <div class="finding-description">
+                The application disables Electron sandbox and web security, allowing renderer
+                process direct Node.js access.
+              </div>
+              <div class="code-block">
+                <span class="file-path">src/main/index.ts (lines 65-66)</span>
+                webPreferences: { sandbox: false, // CRITICAL SECURITY ISSUE webSecurity: false //
+                ADDITIONAL SECURITY ISSUE }
+              </div>
+              <div class="quote">
+                <strong>Impact:</strong> Renderer has full Node.js access. XSS vulnerability becomes
+                full system compromise.
+              </div>
+              <div class="quote">
+                <strong>Human:</strong> Not sandboxed because there's weird stuff happening with
+                vite to run the hot-reload dev server from within the app
+              </div>
+            </div>
+          </div>
+
+          <div class="issue critical">
+            <span class="severity critical">Critical</span>
+            <div class="finding">
+              <div class="finding-title">Path Traversal Vulnerability in Asset Operations</div>
+              <div class="finding-description">
+                File paths from renderer are not validated for directory escape attempts using ".."
+                sequences.
+              </div>
+              <div class="code-block">
+                <span class="file-path">src/main/fileSystem.ts (line 380)</span>
+                export function getAssetFilePath( projectPath: string, assetRelPath: string ):
+                string { const assetsDir = path.join(projectPath, '_include', 'assets') return
+                `file://${path.join(assetsDir, assetRelPath)}` }
+              </div>
+              <div class="quote">
+                <strong>Risk:</strong> Attacker can pass assetRelPath = "../../sensitive-data" to
+                escape assets directory and access arbitrary files.
+              </div>
+              <div class="quote">
+                <strong>Human:</strong> Probably real, but you will be accessing paths on your
+                computer from... your computer. There's no internet and you write the prototypes you
+                run, so this is fine. Don't open untrusted projects.
+              </div>
+            </div>
+          </div>
+
+          <div class="issue critical">
+            <span class="severity critical">Critical</span>
+            <div class="finding">
+              <div class="finding-title">Unvalidated IPC Handlers Expose File Operations</div>
+              <div class="finding-description">
+                IPC handlers perform file operations without input validation or permission checks.
+              </div>
+              <div class="code-block">
+                <span class="file-path">src/main/ipc.ts (lines 281-296)</span>
+                ipcMain.handle('assets:drop', async ( _, filePaths: string[], targetFolder?: string
+                ) => { if (!currentProjectPath) return [] // ... proceeds with file operations
+                without validation }
+              </div>
+              <div class="quote">
+                <strong>Issue:</strong> Handler accepts arbitrary paths. Combined with
+                sandbox:false, allows unrestricted file system access.
+              </div>
+              <div class="quote">
+                <strong>Human:</strong> Again, if your own code wants to escape the sandbox, it can.
+                But it's code you put there.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h2>High Severity Issues</h2>
+        <div class="section">
+          <div class="issue high">
+            <span class="severity high">High</span>
+            <div class="finding">
+              <div class="finding-title">No Input Validation Framework</div>
+              <div class="code-block">
+                <span class="file-path">src/preload/index.ts (lines 69-73)</span>
+                repairIssueAuto: (kind: string, targetPath: string): Promise&lt;void&gt; =>
+                ipcRenderer.invoke('issue:repairAuto', kind, targetPath)
+              </div>
+              <div class="quote">
+                <strong>Problem:</strong> No runtime validation that kind matches IssueKind enum.
+                Malformed data fails only at runtime.
+              </div>
+            </div>
+          </div>
+
+          <div class="issue high">
+            <span class="severity high">High</span>
+            <div class="finding">
+              <div class="finding-title">File Watcher Resource Leak</div>
+              <div class="code-block">
+                <span class="file-path">src/main/ipc.ts (lines 426-438)</span>
+                watcher = chokidar.watch(projectPath, {...}) .on('all', () => sendTreeUpdate()) //
+                If readProjectTree() throws later, watcher persists
+              </div>
+              <div class="quote">
+                <strong>Leak:</strong> Multiple project activations leak watchers. Each watcher
+                consumes memory and file descriptors.
+              </div>
+            </div>
+          </div>
+
+          <div class="issue high">
+            <span class="severity high">High</span>
+            <div class="finding">
+              <div class="finding-title">Unbounded Memory in Recording</div>
+              <div class="code-block">
+                <span class="file-path">src/main/ipc.ts (lines 175-195)</span>
+                recordingInterval = setInterval(async () => { const rgba = Buffer.alloc(bgra.length)
+                // NEW BUFFER EVERY 100ms recordingFrames.push({...}) // UNBOUNDED ARRAY })
+              </div>
+              <div class="quote">
+                <strong>Math:</strong> For 390x844 image: 1.3MB/frame × 10fps = 13MB/sec. 5 min
+                recording = 3.9GB RAM.
+              </div>
+            </div>
+          </div>
+
+          <div class="issue high">
+            <span class="severity high">High</span>
+            <div class="finding">
+              <div class="finding-title">Unsafe JSON Parsing Without Validation</div>
+              <div class="code-block">
+                <span class="file-path">src/main/fileSystem.ts (line 221)</span>
+                config: FolderConfig = fs.existsSync(configPath) ?
+                JSON.parse(fs.readFileSync(configPath, 'utf-8')) : { description: '' } // No
+                validation
+              </div>
+              <div class="quote">
+                <strong>Issue:</strong> Cast assumes correct structure. Malformed files silently
+                fail or crash later.
+              </div>
+            </div>
+          </div>
+
+          <div class="issue high">
+            <span class="severity high">High</span>
+            <div class="finding">
+              <div class="finding-title">React useEffect Dependency Array Bugs</div>
+              <div class="code-block">
+                <span class="file-path">src/renderer/src/App.tsx (lines 132-134)</span>
+                useEffect(() => { bottomRef.current?.scrollIntoView() }, []) // Missing [logs]
+                dependency
+              </div>
+              <div class="quote">
+                <strong>Bug:</strong> Effect runs only on mount. New logs never trigger scroll,
+                defeating the feature.
+              </div>
+            </div>
+          </div>
+
+          <div class="issue high">
+            <span class="severity high">High</span>
+            <div class="finding">
+              <div class="finding-title">Immutable State Bypassed in Zustand</div>
+              <div class="code-block">
+                <span class="file-path">src/renderer/src/store.ts (lines 36, 38)</span>
+                expandedSections: new Set() expandedAssetFolders: new Set()
+              </div>
+              <div class="quote">
+                <strong>Risk:</strong> Direct Set mutations bypass Zustand's reactivity. UI becomes
+                stale.
+              </div>
+            </div>
+          </div>
+
+          <div class="issue high">
+            <span class="severity high">High</span>
+            <div class="finding">
+              <div class="finding-title">No Test Framework</div>
+              <div class="code-block">
+                <span class="file-path">package.json (scripts)</span>
+                "scripts": { "dev": "...", "build": "...", // No "test" script }
+              </div>
+              <div class="quote">
+                <strong>Impact:</strong> Zero test coverage. Silent failures in file ops and state
+                mutations go undetected.
+              </div>
+            </div>
+          </div>
+
+          <div class="issue high">
+            <span class="severity high">High</span>
+            <div class="finding">
+              <div class="finding-title">Error Handling with No Recovery</div>
+              <div class="code-block">
+                <span class="file-path">src/renderer/src/components/AssetPreview.tsx</span>
+                ;(async () => { const path = await window.api.getAssetPath(asset.relPath)
+                setFilePath(path) if (isText) setContent(await window.api.readAssetText(...)) })()
+                // No error handling
+              </div>
+              <div class="quote">
+                <strong>UX Impact:</strong> If API fails, preview shows nothing with no error
+                feedback.
+              </div>
+            </div>
+          </div>
+
+          <div class="issue high">
+            <span class="severity high">High</span>
+            <div class="finding">
+              <div class="finding-title">Weak Typing for Cross-Process Messages</div>
+              <div class="code-block">
+                <span class="file-path">src/renderer/src/components/PhoneView/PhoneView.tsx</span>
+                const onMessage = (e: MessageEvent) => { const d = e.data if (!d || !d.__prototoy)
+                return // Assumes d.type, d.x, d.y without validation }
+              </div>
+              <div class="quote">
+                <strong>Bug:</strong> No schema validation. Malformed messages crash the app
+                silently.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <h2>Medium Severity Issues Summary</h2>
+        <p>Analysis identified 27+ medium-severity issues across:</p>
+        <ul>
+          <li>
+            <strong>Code Duplication (3):</strong> Asset paths repeated 9 times, directory walking
+            duplicated in 4 functions
+          </li>
+          <li>
+            <strong>Type Safety (5):</strong> Missing discriminated unions, inlined types, 10 unsafe
+            'any' casts
+          </li>
+          <li>
+            <strong>Performance (4):</strong> No tree diffing, synchronous I/O blocks UI, stale
+            string parsing
+          </li>
+          <li>
+            <strong>API Design (3):</strong> Inconsistent return types, function signature mismatch,
+            silent error suppression
+          </li>
+          <li>
+            <strong>Security (3):</strong> No path sanitization, unspecified origin in postMessage,
+            unsafe dynamic require
+          </li>
+          <li>
+            <strong>Other (9):</strong> Hardcoded dimensions, unhandled promise rejections, missing
+            preload in dev
+          </li>
+        </ul>
+
+        <h2 style="background: #e3f2fd; padding: 30px; margin: 40px -40px 30px -40px">
+          ✅ Top 10 Action Items
+        </h2>
+
+        <div class="action-items">
+          <div class="action-item critical">
+            <span class="action-number">1</span>
+            <strong>CRITICAL: Enable Electron Sandbox and Web Security</strong>
+            <p><strong>File:</strong> src/main/index.ts (lines 65-66)</p>
+            <p>
+              <strong>Action:</strong> Set sandbox: true and webSecurity: true. Implement preload
+              context bridge.
+            </p>
+            <p><strong>Impact:</strong> Prevents full-system compromise via XSS.</p>
+            <p>
+              <strong>Effort:</strong> 4-6 hours | <strong>Blocks:</strong> All other security fixes
+            </p>
+          </div>
+
+          <div class="action-item critical">
+            <span class="action-number">2</span>
+            <strong>CRITICAL: Implement Input Validation on All IPC Handlers</strong>
+            <p><strong>Files:</strong> src/main/ipc.ts, src/main/fileSystem.ts</p>
+            <p>
+              <strong>Action:</strong> Add Zod schemas for IPC parameters. Validate paths stay
+              within project. Validate enums.
+            </p>
+            <p><strong>Impact:</strong> Prevents path traversal, malformed data, invalid state.</p>
+            <p><strong>Effort:</strong> 6-8 hours</p>
+          </div>
+
+          <div class="action-item critical">
+            <span class="action-number">3</span>
+            <strong>CRITICAL: Add Runtime Schema Validation</strong>
+            <p><strong>Scope:</strong> Project-wide</p>
+            <p>
+              <strong>Action:</strong> Install Zod. Define schemas for ProjectConfig, FolderConfig,
+              TreeNode, PreviewState. Validate all JSON.parse().
+            </p>
+            <p><strong>File:</strong> Create src/shared/schemas.ts</p>
+            <p><strong>Impact:</strong> Catches malformed configs before cascading failures.</p>
+            <p><strong>Effort:</strong> 8-10 hours | <strong>Dependencies:</strong> Action 2</p>
+          </div>
+
+          <div class="action-item high">
+            <span class="action-number">4</span>
+            <strong>Fix React useEffect Dependency Arrays</strong>
+            <p>
+              <strong>Files:</strong> src/renderer/src/App.tsx, src/renderer/src/components/*.tsx
+            </p>
+            <p>
+              <strong>Issues:</strong> App.tsx line 132 add [logs], AssetPreview.tsx line 30 fix
+              isImage, PhoneView.tsx line 71 document closure
+            </p>
+            <p><strong>Impact:</strong> Fixes stale closures, auto-scroll, missed updates.</p>
+            <p><strong>Effort:</strong> 2-3 hours</p>
+          </div>
+
+          <div class="action-item high">
+            <span class="action-number">5</span>
+            <strong>Implement Test Framework (Vitest)</strong>
+            <p><strong>Scope:</strong> Project-wide</p>
+            <p>
+              <strong>Action:</strong> Install vitest. Create tests for IPC handlers, file ops, type
+              validation. Add test npm script.
+            </p>
+            <p><strong>Target:</strong> 60%+ coverage for critical paths</p>
+            <p><strong>Effort:</strong> 12-16 hours initial + ongoing</p>
+          </div>
+
+          <div class="action-item high">
+            <span class="action-number">6</span>
+            <strong>Extract Duplicate Asset Path Helpers</strong>
+            <p><strong>File:</strong> Create src/main/assetPaths.ts</p>
+            <p>
+              <strong>Action:</strong> Move 9 instances of path.join(projectPath, '_include',
+              'assets') to constant function.
+            </p>
+            <p><strong>Impact:</strong> Single source of truth. Easier to update path structure.</p>
+            <p><strong>Effort:</strong> 1-2 hours</p>
+          </div>
+
+          <div class="action-item high">
+            <span class="action-number">7</span>
+            <strong>Fix Resource Leaks: Watchers and Buffers</strong>
+            <p><strong>Files:</strong> src/main/ipc.ts (lines 426-438, 175-195)</p>
+            <p>
+              <strong>Changes:</strong> Close watcher on error. Use circular buffer (max 300
+              frames). Reuse typed array pool for frames.
+            </p>
+            <p><strong>Impact:</strong> Prevents memory exhaustion on long sessions.</p>
+            <p><strong>Effort:</strong> 3-4 hours</p>
+          </div>
+
+          <div class="action-item medium">
+            <span class="action-number">8</span>
+            <strong>Create Type-Safe IPC Interface</strong>
+            <p><strong>File:</strong> Create src/shared/ipcTypes.ts</p>
+            <p>
+              <strong>Action:</strong> Define TypeScript interfaces for all IPC handlers with
+              explicit types. Use type literals for channel names.
+            </p>
+            <p><strong>Impact:</strong> Eliminates typos. Ensures signatures match.</p>
+            <p><strong>Effort:</strong> 4-6 hours | <strong>Dependencies:</strong> Action 3</p>
+          </div>
+
+          <div class="action-item medium">
+            <span class="action-number">9</span>
+            <strong>Add Error Boundaries and Error Handling</strong>
+            <p><strong>Files:</strong> src/renderer/src/App.tsx, all components</p>
+            <p>
+              <strong>Actions:</strong> Add React ErrorBoundary. Add error states to async
+              components. Show toast notifications on failures. Structured logging.
+            </p>
+            <p><strong>Impact:</strong> Users see feedback instead of silent failures.</p>
+            <p><strong>Effort:</strong> 5-7 hours</p>
+          </div>
+
+          <div class="action-item medium">
+            <span class="action-number">10</span>
+            <strong>Enable Strict TypeScript and ESLint</strong>
+            <p><strong>Files:</strong> tsconfig.json, create .eslintrc</p>
+            <p>
+              <strong>Actions:</strong> Set strict: true in tsconfig. Install ESLint +
+              typescript-eslint. Add Prettier. Setup lint-staged pre-commit.
+            </p>
+            <p><strong>Impact:</strong> Prevents 80% of issues before code review.</p>
+            <p><strong>Effort:</strong> 3-4 hours setup + 2-3 hours fixing existing violations</p>
+          </div>
+        </div>
+
+        <h2>Implementation Roadmap</h2>
+        <h3>Phase 1: Security (Blocking) — Week 1</h3>
+        <ul>
+          <li>Actions 1, 2, 3: Enable sandbox, validate inputs, Zod schemas</li>
+          <li>Estimated: 18-24 hours</li>
+        </ul>
+
+        <h3>Phase 2: Quality Foundations — Week 2</h3>
+        <ul>
+          <li>Actions 4, 5, 6, 7: Fix bugs, add tests, refactor duplicates, fix leaks</li>
+          <li>Estimated: 20-28 hours</li>
+        </ul>
+
+        <h3>Phase 3: Polish & Best Practices — Week 3</h3>
+        <ul>
+          <li>Actions 8, 9, 10: Type-safe IPC, error handling, strict TS/ESLint</li>
+          <li>Estimated: 15-20 hours</li>
+        </ul>
+
+        <h2>Issue Breakdown Table</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Count</th>
+              <th>Critical</th>
+              <th>High</th>
+              <th>Medium</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Security</strong></td>
+              <td>7</td>
+              <td>3</td>
+              <td>2</td>
+              <td>2</td>
+            </tr>
+            <tr>
+              <td><strong>Type Safety</strong></td>
+              <td>8</td>
+              <td>0</td>
+              <td>2</td>
+              <td>6</td>
+            </tr>
+            <tr>
+              <td><strong>Error Handling</strong></td>
+              <td>6</td>
+              <td>0</td>
+              <td>2</td>
+              <td>4</td>
+            </tr>
+            <tr>
+              <td><strong>Performance</strong></td>
+              <td>7</td>
+              <td>0</td>
+              <td>1</td>
+              <td>6</td>
+            </tr>
+            <tr>
+              <td><strong>Code Quality</strong></td>
+              <td>12</td>
+              <td>0</td>
+              <td>3</td>
+              <td>9</td>
+            </tr>
+            <tr>
+              <td><strong>Testing</strong></td>
+              <td>1</td>
+              <td>0</td>
+              <td>1</td>
+              <td>0</td>
+            </tr>
+            <tr style="background: #f0f0f0; font-weight: bold">
+              <td><strong>TOTAL</strong></td>
+              <td><strong>41</strong></td>
+              <td><strong>3</strong></td>
+              <td><strong>11</strong></td>
+              <td><strong>27</strong></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2>Analysis Methodology</h2>
+        <p>
+          <strong>Agent 1 (Main Process):</strong> Reviewed src/main/* for security, error handling,
+          performance, resource management, and API design — 27 findings
+        </p>
+        <p>
+          <strong>Agent 2 (Renderer/UI):</strong> Analyzed React components for hooks misuse,
+          performance, type safety, accessibility, and error handling — 22 findings
+        </p>
+        <p>
+          <strong>Agent 3 (Type System):</strong> Examined types.ts, preload security, schema
+          validation, and cross-process type safety — 12 findings
+        </p>
+        <p>
+          <strong>Agent 4 (Architecture):</strong> Reviewed dependencies, build configuration,
+          CI/CD, and testing infrastructure — 10 findings
+        </p>
+      </div>
+
+      <footer>
+        <p>Code Quality Report for Prototoy v0.1.4 | Generated May 28, 2026</p>
+        <p>Multi-Agent Analysis: Main Process | Renderer | Type System | Architecture</p>
+      </footer>
+    </div>
+  </body>
 </html>

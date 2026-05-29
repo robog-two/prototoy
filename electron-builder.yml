@@ -1,4 +1,4 @@
-appId: com.localify.prototoy
+appId: net.robog.prototoy
 productName: Prototoy
 publish:
   - provider: github
@@ -44,7 +44,7 @@ linux:
   icon: build/icon/
   category: Development
   description: UI mockup and wireframe organizer
-  maintainer: Localify
+  maintainer: Sam Knight
   desktop:
     entry:
       StartupWMClass: Prototoy

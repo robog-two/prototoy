@@ -4,11 +4,15 @@ import SectionNode from './SectionNode'
 import ScreenNode from './ScreenNode'
 import CreateModal from '../Modals/CreateModal'
 import AssetsZone from './AssetsZone'
+import { StatusLabel } from '../../styles/SidebarStyles'
 import type { TreeNode } from '../../../../shared/types'
 
 export default function Sidebar(): React.ReactElement {
   const { tree, setTree, previewState } = useStore()
-  const [creating, setCreating] = useState<{ type: 'screen' | 'section'; parentPath: string } | null>(null)
+  const [creating, setCreating] = useState<{
+    type: 'screen' | 'section'
+    parentPath: string
+  } | null>(null)
   const [filterText, setFilterText] = useState('')
 
   async function handleCreated(): Promise<void> {
@@ -35,7 +39,7 @@ export default function Sidebar(): React.ReactElement {
 
   function renderFilteredNodes(nodes: TreeNode[], depth: number) {
     return nodes
-      .filter(node => !filterText || filterNode(node, filterText))
+      .filter((node) => !filterText || filterNode(node, filterText))
       .map((node, index) => (
         <NodeRenderer
           key={node.path}
@@ -48,9 +52,10 @@ export default function Sidebar(): React.ReactElement {
       ))
   }
 
-  const screenCount = tree?.children.reduce((acc, node) => {
-    return acc + (node.type === 'section' ? (node.children?.length ?? 0) : 1)
-  }, 0) ?? 0
+  const screenCount =
+    tree?.children.reduce((acc, node) => {
+      return acc + (node.type === 'section' ? (node.children?.length ?? 0) : 1)
+    }, 0) ?? 0
   const sectionCount = tree?.children.filter((n) => n.type === 'section').length ?? 0
 
   return (
@@ -60,14 +65,9 @@ export default function Sidebar(): React.ReactElement {
         {tree && <div className="proj-path">{tree.projectPath}</div>}
       </div>
 
-      {statusLabel && (
-        <div style={{ padding: 'var(--sp-3) var(--sp-4)', fontSize: 'var(--fs-xs)', color: 'var(--color-ink-60)', borderBottom: '1px solid var(--color-paper-3)', flexShrink: 0 }}>
-          {statusLabel}
-        </div>
-      )}
+      {statusLabel && <StatusLabel>{statusLabel}</StatusLabel>}
 
       {tree && <AssetsZone />}
-
 
       <div className="sb-toolbar">
         <button
@@ -93,12 +93,12 @@ export default function Sidebar(): React.ReactElement {
         />
       </div>
 
-      <div className="sb-tree">
-        {tree && renderFilteredNodes(tree.children, 0)}
-      </div>
+      <div className="sb-tree">{tree && renderFilteredNodes(tree.children, 0)}</div>
 
       <div className="sb-foot">
-        <span>{screenCount} screens · {sectionCount} collections</span>
+        <span>
+          {screenCount} screens · {sectionCount} collections
+        </span>
       </div>
 
       {creating && (
@@ -118,7 +118,7 @@ function NodeRenderer({
   depth,
   projectPath,
   onCreating,
-  sectionIndex = 0
+  sectionIndex = 0,
 }: {
   node: TreeNode
   depth: number
@@ -131,7 +131,12 @@ function NodeRenderer({
   }
 
   // Get color for section based on its index
-  const sectionColors = ['var(--color-cyan)', 'var(--color-green)', 'var(--color-yellow)', 'var(--color-pink)']
+  const sectionColors = [
+    'var(--color-cyan)',
+    'var(--color-green)',
+    'var(--color-yellow)',
+    'var(--color-pink)',
+  ]
   const color = sectionColors[sectionIndex % 4]
 
   return (

@@ -5,29 +5,29 @@
 
 /* Fonts */
 @font-face {
-  font-family: "TeX Gyre Heros";
-  src: url("/fonts/heros.woff") format("woff");
+  font-family: 'TeX Gyre Heros';
+  src: url('/fonts/heros.woff') format('woff');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: "TeX Gyre Heros";
-  src: url("/fonts/herositalic.woff") format("woff");
+  font-family: 'TeX Gyre Heros';
+  src: url('/fonts/herositalic.woff') format('woff');
   font-weight: normal;
   font-style: italic;
   font-display: swap;
 }
 @font-face {
-  font-family: "TeX Gyre Heros";
-  src: url("/fonts/herosbold.woff") format("woff");
+  font-family: 'TeX Gyre Heros';
+  src: url('/fonts/herosbold.woff') format('woff');
   font-weight: bold;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
-  font-family: "TeX Gyre Heros";
-  src: url("/fonts/herosbolditalic.woff") format("woff");
+  font-family: 'TeX Gyre Heros';
+  src: url('/fonts/herosbolditalic.woff') format('woff');
   font-weight: bold;
   font-style: italic;
   font-display: swap;
@@ -56,9 +56,9 @@
   --color-primary: var(--color-cyan);
 
   /* Font families */
-  --font-display: "TeX Gyre Heros", Helvetica, Arial, sans-serif;
-  --font-text: Avenir, "Trebuchet MS", "Open Sans", sans-serif;
-  --font-mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
+  --font-display: 'TeX Gyre Heros', Helvetica, Arial, sans-serif;
+  --font-text: Avenir, 'Trebuchet MS', 'Open Sans', sans-serif;
+  --font-mono: 'SF Mono', ui-monospace, 'JetBrains Mono', Menlo, monospace;
 
   /* Typography scale */
   --fs-2xs: 10px;
@@ -94,13 +94,17 @@
 }
 
 /* Base resets */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   width: 100%;
   overflow: hidden;
@@ -120,7 +124,8 @@ button {
   font: inherit;
 }
 
-input, textarea {
+input,
+textarea {
   font: inherit;
   color: inherit;
   background: var(--color-paper);
@@ -129,12 +134,14 @@ input, textarea {
   padding: 4px 8px;
 }
 
-input::placeholder, textarea::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: var(--color-ink-50);
   font-style: italic;
 }
 
-input:focus, textarea:focus {
+input:focus,
+textarea:focus {
   background: var(--color-paper-2);
 }
 
@@ -322,9 +329,10 @@ input:focus, textarea:focus {
   display: flex;
   align-items: center;
   gap: 5px;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
 }
-
 
 .sb-tool-btn:hover {
   background: var(--color-ink);
@@ -515,7 +523,9 @@ input:focus, textarea:focus {
   cursor: pointer;
   font-size: var(--fs-xs);
   padding: 0;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
 }
 
 .tr-icon-btn:hover {
@@ -633,7 +643,10 @@ input:focus, textarea:focus {
   justify-content: center;
   gap: 6px;
   cursor: copy;
-  transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
+  transition:
+    border-color var(--t-fast),
+    background var(--t-fast),
+    color var(--t-fast);
 }
 
 .sb-drop.active {
@@ -665,7 +678,7 @@ input:focus, textarea:focus {
 }
 
 .sb-asset:hover {
-  background: rgba(0, 194, 234, 0.10);
+  background: rgba(0, 194, 234, 0.1);
 }
 
 .sb-asset-thumb {
@@ -716,7 +729,10 @@ input:focus, textarea:focus {
   color: var(--color-ink);
   cursor: pointer;
   opacity: 0;
-  transition: opacity var(--t-fast), background var(--t-fast), color var(--t-fast);
+  transition:
+    opacity var(--t-fast),
+    background var(--t-fast),
+    color var(--t-fast);
   padding: 0;
 }
 
@@ -819,7 +835,9 @@ input:focus, textarea:focus {
   display: flex;
   align-items: center;
   gap: 6px;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
   flex-shrink: 1;
   min-width: 0;
   max-width: 200px;
@@ -833,7 +851,6 @@ input:focus, textarea:focus {
   fill: none;
   flex-shrink: 0;
 }
-
 
 .tb-btn:hover {
   background: var(--color-ink);
@@ -864,8 +881,13 @@ input:focus, textarea:focus {
 }
 
 @keyframes tbVideoRecBlink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 
 .tb-btn svg {
@@ -1122,7 +1144,9 @@ input:focus, textarea:focus {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: transform var(--t-fast), box-shadow var(--t-fast);
+  transition:
+    transform var(--t-fast),
+    box-shadow var(--t-fast);
 }
 
 .btn-big:hover {
@@ -1214,7 +1238,9 @@ input:focus, textarea:focus {
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
   cursor: pointer;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
 }
 
 .modal-head .close:hover {
@@ -1279,7 +1305,9 @@ input:focus, textarea:focus {
   background: var(--color-paper);
   border: 1.5px solid var(--color-ink);
   cursor: pointer;
-  transition: transform var(--t-fast), box-shadow var(--t-fast);
+  transition:
+    transform var(--t-fast),
+    box-shadow var(--t-fast);
 }
 
 .recent-item:hover {
@@ -1443,7 +1471,9 @@ input:focus, textarea:focus {
   background: var(--color-paper);
   color: var(--color-ink);
   cursor: pointer;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
 }
 
 .create-modal-footer button:hover {
@@ -1659,7 +1689,9 @@ input:focus, textarea:focus {
   color: var(--color-ink);
   cursor: pointer;
   padding: 0;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
   line-height: 1;
 }
 
@@ -1779,7 +1811,9 @@ input:focus, textarea:focus {
   border: 1.5px solid var(--color-ink);
   cursor: pointer;
   white-space: nowrap;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
 }
 
 .issue-fix-btn:hover {
@@ -1861,7 +1895,9 @@ input:focus, textarea:focus {
   background: var(--color-paper);
   color: var(--color-ink);
   cursor: pointer;
-  transition: background var(--t-fast), color var(--t-fast);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
 }
 
 .create-modal-footer-btn:hover {

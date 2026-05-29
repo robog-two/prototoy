@@ -4,7 +4,10 @@ export const Folder = ({ open = false }: { open?: boolean }): React.ReactElement
   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
     {open ? (
       <>
-        <path d="M1.5 3.5 L1.5 12.5 L13.5 12.5 L14.5 6 L4 6 L3 4 L1.5 3.5 Z" fill="var(--color-paper)" />
+        <path
+          d="M1.5 3.5 L1.5 12.5 L13.5 12.5 L14.5 6 L4 6 L3 4 L1.5 3.5 Z"
+          fill="var(--color-paper)"
+        />
         <path d="M3 6 L4 4 L14 4 L14 5" />
       </>
     ) : (

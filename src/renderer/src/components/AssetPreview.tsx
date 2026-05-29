@@ -104,7 +104,7 @@ export default function AssetPreview({ asset }: Props): React.ReactElement {
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
         }}
       >
         <img
@@ -115,7 +115,7 @@ export default function AssetPreview({ asset }: Props): React.ReactElement {
             maxWidth: '100%',
             maxHeight: '100%',
             objectFit: 'contain',
-            userSelect: 'none'
+            userSelect: 'none',
           }}
           onDragStart={(e) => e.preventDefault()}
         />
@@ -137,7 +137,7 @@ export default function AssetPreview({ asset }: Props): React.ReactElement {
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
         }}
       >
         <img
@@ -148,7 +148,7 @@ export default function AssetPreview({ asset }: Props): React.ReactElement {
             maxWidth: '100%',
             maxHeight: '100%',
             objectFit: 'contain',
-            userSelect: 'none'
+            userSelect: 'none',
           }}
           onDragStart={(e) => e.preventDefault()}
         />
@@ -171,32 +171,35 @@ export default function AssetPreview({ asset }: Props): React.ReactElement {
           style={{
             padding: 'var(--sp-8)',
             overflow: 'auto',
-            fontFamily: fontFamilyName
+            fontFamily: fontFamilyName,
           }}
         >
-        <div style={{ marginBottom: 'var(--sp-8)' }}>
-          <h3 style={{ marginBottom: 'var(--sp-4)', fontFamily: 'var(--font-display)' }}>
-            {asset.name}
-          </h3>
+          <div style={{ marginBottom: 'var(--sp-8)' }}>
+            <h3 style={{ marginBottom: 'var(--sp-4)', fontFamily: 'var(--font-display)' }}>
+              {asset.name}
+            </h3>
+          </div>
+          <div style={{ fontSize: '16px', marginBottom: 'var(--sp-8)', lineHeight: 1.6 }}>
+            <div>
+              <strong style={{ fontFamily: 'var(--font-display)' }}>16px</strong> The quick brown
+              fox jumps over the lazy dog
+            </div>
+            <div style={{ fontSize: '24px', marginTop: 'var(--sp-6)' }}>
+              <strong style={{ fontFamily: 'var(--font-display)' }}>24px</strong> The quick brown
+              fox jumps over the lazy dog
+            </div>
+            <div style={{ fontSize: '48px', marginTop: 'var(--sp-6)' }}>
+              <strong style={{ fontFamily: 'var(--font-display)' }}>48px</strong> The quick brown
+              fox
+            </div>
+            <div style={{ fontSize: '14px', marginTop: 'var(--sp-6)', letterSpacing: '0.05em' }}>
+              ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+            </div>
+            <div style={{ fontSize: '14px', marginTop: 'var(--sp-4)' }}>
+              0123456789 !@#$%^&amp;*()_+-=[]{}|;:&quot;,&lt;&gt;?
+            </div>
+          </div>
         </div>
-        <div style={{ fontSize: '16px', marginBottom: 'var(--sp-8)', lineHeight: 1.6 }}>
-          <div>
-            <strong style={{ fontFamily: 'var(--font-display)' }}>16px</strong> The quick brown fox jumps over the lazy
-            dog
-          </div>
-          <div style={{ fontSize: '24px', marginTop: 'var(--sp-6)' }}>
-            <strong style={{ fontFamily: 'var(--font-display)' }}>24px</strong> The quick brown fox jumps over the lazy
-            dog
-          </div>
-          <div style={{ fontSize: '48px', marginTop: 'var(--sp-6)' }}>
-            <strong style={{ fontFamily: 'var(--font-display)' }}>48px</strong> The quick brown fox
-          </div>
-          <div style={{ fontSize: '14px', marginTop: 'var(--sp-6)', letterSpacing: '0.05em' }}>
-            ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
-          </div>
-          <div style={{ fontSize: '14px', marginTop: 'var(--sp-4)' }}>0123456789 !@#$%^&amp;*()_+-=[]{}|;:&quot;,&lt;&gt;?</div>
-        </div>
-      </div>
       </>
     )
   }
@@ -231,7 +234,7 @@ export default function AssetPreview({ asset }: Props): React.ReactElement {
         alignItems: 'center',
         justifyContent: 'center',
         gap: 'var(--sp-6)',
-        padding: 'var(--sp-8)'
+        padding: 'var(--sp-8)',
       }}
     >
       <div style={{ fontSize: 'var(--fs-xl)', fontWeight: 'bold' }}>{asset.name}</div>
@@ -249,7 +252,7 @@ export default function AssetPreview({ asset }: Props): React.ReactElement {
           background: 'var(--color-paper)',
           cursor: 'pointer',
           fontFamily: 'var(--font-display)',
-          fontSize: 'var(--fs-sm)'
+          fontSize: 'var(--fs-sm)',
         }}
       >
         Copy path

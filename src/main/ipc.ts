@@ -2,6 +2,43 @@ import { ipcMain, BrowserWindow, clipboard, dialog, desktopCapturer } from 'elec
 import * as path from 'path'
 import * as fs from 'fs'
 import chokidar, { FSWatcher } from 'chokidar'
+
+/**
+ * SECURITY: Validates that a provided relative asset path stays within the assets directory.
+ * Prevents path traversal attacks like "../../../etc/passwd"
+ */
+function validateAssetPath(projectPath: string, assetRelPath: string): string {
+  const assetsDir = path.resolve(path.join(projectPath, '_include', 'assets'))
+  const resolvedPath = path.resolve(path.join(assetsDir, assetRelPath))
+
+  // Ensure the resolved path is within the assets directory
+  if (!resolvedPath.startsWith(assetsDir + path.sep) && resolvedPath !== assetsDir) {
+    throw new Error(`Invalid asset path: path traversal attempt detected`)
+  }
+  return resolvedPath
+}
+
+/**
+ * SECURITY: Validates folder paths used in asset operations.
+ */
+function validateAssetFolderPath(projectPath: string, folderRelPath: string): string {
+  const assetsDir = path.resolve(path.join(projectPath, '_include', 'assets'))
+  const resolvedPath = path.resolve(path.join(assetsDir, folderRelPath))
+
+  if (!resolvedPath.startsWith(assetsDir + path.sep) && resolvedPath !== assetsDir) {
+    throw new Error(`Invalid folder path: path traversal attempt detected`)
+  }
+  return resolvedPath
+}
+
+/**
+ * SECURITY: Validates string input length to prevent DoS via huge strings.
+ */
+function validateStringLength(str: string, maxLength: number, fieldName: string): void {
+  if (!str || str.length > maxLength) {
+    throw new Error(`${fieldName} exceeds maximum length of ${maxLength} characters`)
+  }
+}
 import {
   openProjectDialog,
   readProjectTree,
@@ -22,7 +59,7 @@ import {
   deleteAsset,
   getAssetFilePath,
   readAssetText,
-  writeAssetText
+  writeAssetText,
 } from './fileSystem'
 import { addLog, getAllLogs } from './previewServer'
 import type { ProjectIssue, AssetNode } from '../shared/types'
@@ -38,13 +75,18 @@ function countAssets(nodes: AssetNode[]): number {
   }
   return count
 }
-import { writeSectionClaudeMd, regenerateAllClaudeMds, regenerateAllSkills, generateSectionResources } from './claudeMd'
+import {
+  writeSectionClaudeMd,
+  regenerateAllClaudeMds,
+  regenerateAllSkills,
+  generateSectionResources,
+} from './claudeMd'
 import {
   startPreviewServer,
   stopPreviewServer,
   regeneratePreviewApp,
   getPreviewPort,
-  getPreviewLogs
+  getPreviewLogs,
 } from './previewServer'
 import { getRecentProjects, addRecentProject } from './recentProjects'
 
@@ -77,11 +119,15 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('project:create', async (_, name: string, description: string) => {
+    // SECURITY: Validate input
+    validateStringLength(name, 255, 'project name')
+    validateStringLength(description, 10000, 'project description')
+
     const { canceled, filePath } = await dialog.showSaveDialog({
       title: 'Create New Project',
       nameFieldLabel: 'Project folder name',
       defaultPath: name,
-      buttonLabel: 'Create Project'
+      buttonLabel: 'Create Project',
     })
     if (canceled || !filePath) return null
 
@@ -93,7 +139,7 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('project:open', async (_, projectPath?: string) => {
-    const path = projectPath || await openProjectDialog()
+    const path = projectPath || (await openProjectDialog())
     if (!path) return null
     return activateProject(path)
   })
@@ -104,6 +150,9 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('screen:create', async (_, parentPath: string, name: string) => {
+    // SECURITY: Validate input
+    validateStringLength(name, 255, 'screen name')
+
     const screenPath = createScreen(parentPath, name)
     const sectionPath = findSectionAncestor(parentPath)
     if (sectionPath && currentProjectPath) {
@@ -113,20 +162,44 @@ export function registerIpcHandlers(): void {
     return screenPath
   })
 
-  ipcMain.handle('section:create', async (_, parentPath: string, name: string, description: string) => {
-    const sectionPath = createSection(parentPath, name, description, currentProjectPath ?? undefined)
-    if (currentProjectPath) {
-      writeSectionClaudeMd(sectionPath, currentProjectPath, getProjectName())
-      try { generateSectionResources(sectionPath) } catch { /* non-fatal */ }
-      const parentSection = findSectionAncestor(parentPath)
-      if (parentSection) {
-        writeSectionClaudeMd(parentSection, currentProjectPath, getProjectName(), getPreviewPort())
+  ipcMain.handle(
+    'section:create',
+    async (_, parentPath: string, name: string, description: string) => {
+      // SECURITY: Validate input
+      validateStringLength(name, 255, 'section name')
+      validateStringLength(description, 10000, 'section description')
+
+      const sectionPath = createSection(
+        parentPath,
+        name,
+        description,
+        currentProjectPath ?? undefined
+      )
+      if (currentProjectPath) {
+        writeSectionClaudeMd(sectionPath, currentProjectPath, getProjectName())
+        try {
+          generateSectionResources(sectionPath)
+        } catch {
+          /* non-fatal */
+        }
+        const parentSection = findSectionAncestor(parentPath)
+        if (parentSection) {
+          writeSectionClaudeMd(
+            parentSection,
+            currentProjectPath,
+            getProjectName(),
+            getPreviewPort()
+          )
+        }
       }
+      return sectionPath
     }
-    return sectionPath
-  })
+  )
 
   ipcMain.handle('node:rename', async (_, nodePath: string, newName: string) => {
+    // SECURITY: Validate input
+    validateStringLength(newName, 255, 'node name')
+
     const newPath = renameNode(nodePath, newName)
     refreshAffectedClaudeMd(path.dirname(newPath))
     return newPath
@@ -148,12 +221,18 @@ export function registerIpcHandlers(): void {
     return newPath
   })
 
-  ipcMain.handle('section:updateDescription', async (_, sectionPath: string, description: string) => {
-    updateSectionDescription(sectionPath, description)
-    if (currentProjectPath) {
-      writeSectionClaudeMd(sectionPath, currentProjectPath, getProjectName())
+  ipcMain.handle(
+    'section:updateDescription',
+    async (_, sectionPath: string, description: string) => {
+      // SECURITY: Validate input
+      validateStringLength(description, 10000, 'section description')
+
+      updateSectionDescription(sectionPath, description)
+      if (currentProjectPath) {
+        writeSectionClaudeMd(sectionPath, currentProjectPath, getProjectName())
+      }
     }
-  })
+  )
 
   ipcMain.handle('screen:select', (_, screenPath: string) => {
     if (!currentProjectPath) return null
@@ -165,6 +244,8 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('preview:getLogs', () => getAllLogs())
 
   ipcMain.handle('clipboard:write', (_, text: string) => {
+    // SECURITY: Validate input length
+    validateStringLength(text, 10 * 1024 * 1024, 'clipboard text')
     clipboard.writeText(text)
   })
 
@@ -178,7 +259,7 @@ export function registerIpcHandlers(): void {
       x: Math.round(frac.xFrac * imgW),
       y: Math.round(frac.yFrac * imgH),
       width: Math.round(frac.wFrac * imgW),
-      height: Math.round(frac.hFrac * imgH)
+      height: Math.round(frac.hFrac * imgH),
     }
   }
 
@@ -195,7 +276,7 @@ export function registerIpcHandlers(): void {
       const bgra = image.getBitmap()
       const rgba = Buffer.alloc(bgra.length)
       for (let i = 0; i < bgra.length; i += 4) {
-        rgba[i]     = bgra[i + 2]
+        rgba[i] = bgra[i + 2]
         rgba[i + 1] = bgra[i + 1]
         rgba[i + 2] = bgra[i]
         rgba[i + 3] = 255
@@ -217,7 +298,7 @@ export function registerIpcHandlers(): void {
     if (!win) return
     const { canceled, filePath } = await dialog.showSaveDialog(win, {
       defaultPath: 'recording.gif',
-      filters: [{ name: 'GIF Image', extensions: ['gif'] }]
+      filters: [{ name: 'GIF Image', extensions: ['gif'] }],
     })
     if (canceled || !filePath) return
 
@@ -240,7 +321,7 @@ export function registerIpcHandlers(): void {
     if (!win) return
     const { canceled, filePath } = await dialog.showSaveDialog(win, {
       defaultPath: 'screenshot.png',
-      filters: [{ name: 'PNG Image', extensions: ['png'] }]
+      filters: [{ name: 'PNG Image', extensions: ['png'] }],
     })
     if (canceled || !filePath) return
     const full = await win.webContents.capturePage()
@@ -271,7 +352,7 @@ export function registerIpcHandlers(): void {
     if (!currentProjectPath) return []
     const { canceled, filePaths } = await dialog.showOpenDialog({
       title: 'Import Assets',
-      properties: ['openFile', 'openDirectory', 'multiSelections']
+      properties: ['openFile', 'openDirectory', 'multiSelections'],
     })
     if (canceled || filePaths.length === 0) {
       addLog('assets', 'Import canceled')
@@ -294,7 +375,10 @@ export function registerIpcHandlers(): void {
       return []
     }
     try {
-      addLog('assets', `Dropping ${filePaths.length} item(s): ${filePaths.map(p => path.basename(p)).join(', ')}`)
+      addLog(
+        'assets',
+        `Dropping ${filePaths.length} item(s): ${filePaths.map((p) => path.basename(p)).join(', ')}`
+      )
       const names = copyAssetsToInclude(currentProjectPath, filePaths, targetFolder)
       addLog('assets', `Successfully copied ${names.length} item(s)`)
       regenerateAllClaudeMds(currentProjectPath, getProjectName())
@@ -311,6 +395,10 @@ export function registerIpcHandlers(): void {
       return
     }
     try {
+      // SECURITY: Validate folder path and length
+      validateStringLength(folderRelPath, 1024, 'folderRelPath')
+      validateAssetFolderPath(currentProjectPath, folderRelPath)
+
       addLog('assets', `Creating folder: ${folderRelPath}`)
       createAssetFolder(currentProjectPath, folderRelPath)
       addLog('assets', `Folder created: ${folderRelPath}`)
@@ -323,6 +411,14 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('assets:move', async (_, assetRelPath: string, newParentRelPath: string) => {
     if (!currentProjectPath) return
     try {
+      // SECURITY: Validate paths
+      validateStringLength(assetRelPath, 1024, 'assetRelPath')
+      validateStringLength(newParentRelPath, 1024, 'newParentRelPath')
+      validateAssetPath(currentProjectPath, assetRelPath)
+      if (newParentRelPath) {
+        validateAssetFolderPath(currentProjectPath, newParentRelPath)
+      }
+
       addLog('assets', `Moving ${path.basename(assetRelPath)} to ${newParentRelPath || 'root'}`)
       moveAsset(currentProjectPath, assetRelPath, newParentRelPath)
       addLog('assets', `Moved: ${assetRelPath} → ${newParentRelPath}`)
@@ -335,6 +431,10 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('assets:delete', async (_, assetRelPath: string) => {
     if (!currentProjectPath) return
     try {
+      // SECURITY: Validate asset path
+      validateStringLength(assetRelPath, 1024, 'assetRelPath')
+      validateAssetPath(currentProjectPath, assetRelPath)
+
       addLog('assets', `Deleting: ${assetRelPath}`)
       deleteAsset(currentProjectPath, assetRelPath)
       addLog('assets', `Deleted: ${assetRelPath}`)
@@ -346,16 +446,26 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle('assets:getPath', async (_, assetRelPath: string) => {
     if (!currentProjectPath) return ''
+    // SECURITY: Validate asset path
+    validateStringLength(assetRelPath, 1024, 'assetRelPath')
+    validateAssetPath(currentProjectPath, assetRelPath)
     return getAssetFilePath(currentProjectPath, assetRelPath)
   })
 
   ipcMain.handle('assets:readText', async (_, assetRelPath: string) => {
     if (!currentProjectPath) return ''
+    // SECURITY: Validate asset path
+    validateStringLength(assetRelPath, 1024, 'assetRelPath')
+    validateAssetPath(currentProjectPath, assetRelPath)
     return readAssetText(currentProjectPath, assetRelPath)
   })
 
   ipcMain.handle('assets:writeText', async (_, assetRelPath: string, content: string) => {
     if (!currentProjectPath) return
+    // SECURITY: Validate asset path and content length
+    validateStringLength(assetRelPath, 1024, 'assetRelPath')
+    validateStringLength(content, 50 * 1024 * 1024, 'content') // 50MB limit
+    validateAssetPath(currentProjectPath, assetRelPath)
     writeAssetText(currentProjectPath, assetRelPath, content)
   })
 
@@ -364,6 +474,12 @@ export function registerIpcHandlers(): void {
   })
 
   ipcMain.handle('issue:repairAuto', (_, kind: string, targetPath: string) => {
+    // SECURITY: Validate kind is one of allowed values (whitelist, not blacklist)
+    const allowedKinds = ['include-dir-missing', 'symlink-failed']
+    if (!allowedKinds.includes(kind)) {
+      throw new Error(`Unknown auto-repair kind: ${kind}`)
+    }
+
     switch (kind) {
       case 'include-dir-missing':
         ensureIncludeDir(targetPath)
@@ -372,16 +488,21 @@ export function registerIpcHandlers(): void {
         if (!currentProjectPath) throw new Error('No project open')
         ensureSectionIncludeSymlink(targetPath, currentProjectPath)
         break
-      default:
-        throw new Error(`Unknown auto-repair kind: ${kind}`)
     }
   })
 
   ipcMain.handle('issue:repairText', (_, sectionPath: string, description: string) => {
+    // SECURITY: Validate input
+    validateStringLength(description, 10000, 'description')
+
     const configPath = path.join(sectionPath, 'folder.json')
     let existing: Record<string, unknown> = {}
     if (fs.existsSync(configPath)) {
-      try { existing = JSON.parse(fs.readFileSync(configPath, 'utf-8')) } catch { /* ignore — we overwrite */ }
+      try {
+        existing = JSON.parse(fs.readFileSync(configPath, 'utf-8'))
+      } catch {
+        /* ignore — we overwrite */
+      }
     }
     fs.writeFileSync(configPath, JSON.stringify({ ...existing, description }, null, 2))
   })
@@ -408,14 +529,16 @@ function activateProject(projectPath: string): ReturnType<typeof readProjectTree
   currentProjectPath = projectPath
   const issues: ProjectIssue[] = []
 
-  try { ensureIncludeDir(projectPath) } catch (err) {
+  try {
+    ensureIncludeDir(projectPath)
+  } catch (err) {
     issues.push({
       id: `issue-incl-${Date.now()}`,
       kind: 'include-dir-missing',
       title: 'Shared _include directory missing',
       detail: `Could not create the _include directory. ${err instanceof Error ? err.message : String(err)}`,
       path: path.join(projectPath, '_include'),
-      repair: 'auto'
+      repair: 'auto',
     })
   }
 
@@ -428,10 +551,12 @@ function activateProject(projectPath: string): ReturnType<typeof readProjectTree
         title: 'Section link broken',
         detail: `"${path.basename(fp)}" could not be linked to the shared _include directory.`,
         path: fp,
-        repair: 'auto'
+        repair: 'auto',
       })
     }
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
 
   if (watcher) watcher.close()
   watcher = chokidar
@@ -439,7 +564,7 @@ function activateProject(projectPath: string): ReturnType<typeof readProjectTree
       ignored: [/(^|[/\\])\./, /node_modules/, /\.prototoy/],
       persistent: true,
       ignoreInitial: true,
-      depth: 8
+      depth: 8,
     })
     .on('all', () => sendTreeUpdate())
 
@@ -453,8 +578,16 @@ function activateProject(projectPath: string): ReturnType<typeof readProjectTree
   }
 
   // Generate CLAUDE.md and skills for all sections immediately
-  try { regenerateAllClaudeMds(projectPath, tree.config.name ?? '') } catch { /* non-fatal */ }
-  try { regenerateAllSkills(projectPath) } catch { /* non-fatal */ }
+  try {
+    regenerateAllClaudeMds(projectPath, tree.config.name ?? '')
+  } catch {
+    /* non-fatal */
+  }
+  try {
+    regenerateAllSkills(projectPath)
+  } catch {
+    /* non-fatal */
+  }
 
   // Resize window to full size for project view, keeping it centered
   if (win && !win.isMaximized()) {
@@ -473,11 +606,19 @@ function activateProject(projectPath: string): ReturnType<typeof readProjectTree
       win.setSize(newWidth, newHeight, true)
     } catch {
       // If positioning fails, just resize without repositioning
-      try { win?.setSize(1280, 800, true) } catch { /* non-fatal */ }
+      try {
+        win?.setSize(1280, 800, true)
+      } catch {
+        /* non-fatal */
+      }
     }
   }
 
-  try { addRecentProject(tree) } catch { /* non-fatal */ }
+  try {
+    addRecentProject(tree)
+  } catch {
+    /* non-fatal */
+  }
 
   if (issues.length > 0) {
     win?.webContents.send('project:issues', issues)
@@ -486,7 +627,11 @@ function activateProject(projectPath: string): ReturnType<typeof readProjectTree
   startPreviewServer(projectPath, (status, port) => {
     win?.webContents.send('preview:status', { status, port: port ?? null })
     if (status === 'ready' && port) {
-      try { regenerateAllClaudeMds(projectPath, tree.config.name ?? '') } catch { /* non-fatal */ }
+      try {
+        regenerateAllClaudeMds(projectPath, tree.config.name ?? '')
+      } catch {
+        /* non-fatal */
+      }
     }
   }).catch((err) => {
     win?.webContents.send('preview:status', { status: 'error', error: err.message })
@@ -519,9 +664,9 @@ function findSectionAncestor(dirPath: string): string | null {
 
 function refreshAffectedClaudeMd(parentPath: string): void {
   if (!currentProjectPath) return
-  const sectionPath = findSectionAncestor(parentPath) ?? (
-    fs.existsSync(path.join(parentPath, 'folder.json')) ? parentPath : null
-  )
+  const sectionPath =
+    findSectionAncestor(parentPath) ??
+    (fs.existsSync(path.join(parentPath, 'folder.json')) ? parentPath : null)
   if (sectionPath) {
     writeSectionClaudeMd(sectionPath, currentProjectPath, getProjectName(), getPreviewPort())
   }

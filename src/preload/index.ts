@@ -5,7 +5,9 @@ const api = {
   createProject: (name: string, description: string): Promise<ProjectTree | null> =>
     ipcRenderer.invoke('project:create', name, description),
   openProject: (projectPath?: string): Promise<ProjectTree | null> =>
-    projectPath ? ipcRenderer.invoke('project:open', projectPath) : ipcRenderer.invoke('project:open'),
+    projectPath
+      ? ipcRenderer.invoke('project:open', projectPath)
+      : ipcRenderer.invoke('project:open'),
   getTree: (): Promise<ProjectTree | null> => ipcRenderer.invoke('project:getTree'),
 
   createScreen: (parentPath: string, name: string): Promise<string> =>
@@ -20,25 +22,44 @@ const api = {
   updateSectionDescription: (sectionPath: string, description: string): Promise<void> =>
     ipcRenderer.invoke('section:updateDescription', sectionPath, description),
 
-  selectScreen: (screenPath: string): Promise<string | null> => ipcRenderer.invoke('screen:select', screenPath),
+  selectScreen: (screenPath: string): Promise<string | null> =>
+    ipcRenderer.invoke('screen:select', screenPath),
   getPreviewPort: (): Promise<number | null> => ipcRenderer.invoke('preview:getPort'),
   getPreviewLogs: (): Promise<string[]> => ipcRenderer.invoke('preview:getLogs'),
 
   copyToClipboard: (text: string): Promise<void> => ipcRenderer.invoke('clipboard:write', text),
-  saveScreenshot: (frac?: { xFrac: number; yFrac: number; wFrac: number; hFrac: number }): Promise<string | undefined> => ipcRenderer.invoke('screenshot:save', frac),
-  startRecording: (frac?: { xFrac: number; yFrac: number; wFrac: number; hFrac: number }): Promise<void> => ipcRenderer.invoke('recording:start', frac),
+  saveScreenshot: (frac?: {
+    xFrac: number
+    yFrac: number
+    wFrac: number
+    hFrac: number
+  }): Promise<string | undefined> => ipcRenderer.invoke('screenshot:save', frac),
+  startRecording: (frac?: {
+    xFrac: number
+    yFrac: number
+    wFrac: number
+    hFrac: number
+  }): Promise<void> => ipcRenderer.invoke('recording:start', frac),
   stopRecording: (): Promise<string | undefined> => ipcRenderer.invoke('recording:stop'),
 
   listAssets: (): Promise<string[]> => ipcRenderer.invoke('assets:list'),
   listAssetsTree: (): Promise<AssetNode[]> => ipcRenderer.invoke('assets:tree'),
-  importAssets: (targetFolder?: string): Promise<string[]> => ipcRenderer.invoke('assets:import', targetFolder),
-  dropAssets: (filePaths: string[], targetFolder?: string): Promise<string[]> => ipcRenderer.invoke('assets:drop', filePaths, targetFolder),
-  createAssetFolder: (folderRelPath: string): Promise<void> => ipcRenderer.invoke('assets:createFolder', folderRelPath),
-  moveAsset: (assetRelPath: string, newParentRelPath: string): Promise<void> => ipcRenderer.invoke('assets:move', assetRelPath, newParentRelPath),
-  deleteAsset: (assetRelPath: string): Promise<void> => ipcRenderer.invoke('assets:delete', assetRelPath),
-  getAssetPath: (assetRelPath: string): Promise<string> => ipcRenderer.invoke('assets:getPath', assetRelPath),
-  readAssetText: (assetRelPath: string): Promise<string> => ipcRenderer.invoke('assets:readText', assetRelPath),
-  writeAssetText: (assetRelPath: string, content: string): Promise<void> => ipcRenderer.invoke('assets:writeText', assetRelPath, content),
+  importAssets: (targetFolder?: string): Promise<string[]> =>
+    ipcRenderer.invoke('assets:import', targetFolder),
+  dropAssets: (filePaths: string[], targetFolder?: string): Promise<string[]> =>
+    ipcRenderer.invoke('assets:drop', filePaths, targetFolder),
+  createAssetFolder: (folderRelPath: string): Promise<void> =>
+    ipcRenderer.invoke('assets:createFolder', folderRelPath),
+  moveAsset: (assetRelPath: string, newParentRelPath: string): Promise<void> =>
+    ipcRenderer.invoke('assets:move', assetRelPath, newParentRelPath),
+  deleteAsset: (assetRelPath: string): Promise<void> =>
+    ipcRenderer.invoke('assets:delete', assetRelPath),
+  getAssetPath: (assetRelPath: string): Promise<string> =>
+    ipcRenderer.invoke('assets:getPath', assetRelPath),
+  readAssetText: (assetRelPath: string): Promise<string> =>
+    ipcRenderer.invoke('assets:readText', assetRelPath),
+  writeAssetText: (assetRelPath: string, content: string): Promise<void> =>
+    ipcRenderer.invoke('assets:writeText', assetRelPath, content),
 
   getRecentProjects: (): Promise<any[]> => ipcRenderer.invoke('recent:get'),
 
@@ -78,8 +99,18 @@ const api = {
     return () => ipcRenderer.removeListener('app:prepare-update', handler)
   },
 
-  onUpdateProgress: (callback: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => void) => {
-    const handler = (_: unknown, progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => callback(progress)
+  onUpdateProgress: (
+    callback: (progress: {
+      percent: number
+      bytesPerSecond: number
+      transferred: number
+      total: number
+    }) => void
+  ) => {
+    const handler = (
+      _: unknown,
+      progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }
+    ) => callback(progress)
     ipcRenderer.on('update:progress', handler)
     return () => ipcRenderer.removeListener('update:progress', handler)
   },
@@ -88,7 +119,7 @@ const api = {
     ipcRenderer.invoke('issue:repairAuto', kind, targetPath),
 
   repairIssueText: (sectionPath: string, description: string): Promise<void> =>
-    ipcRenderer.invoke('issue:repairText', sectionPath, description)
+    ipcRenderer.invoke('issue:repairText', sectionPath, description),
 }
 
 contextBridge.exposeInMainWorld('api', api)

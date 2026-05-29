@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { ProjectTree, TreeNode, PreviewState, ProjectIssue, AssetNode } from '../../shared/types'
+import type { ProjectTree, PreviewState, ProjectIssue, AssetNode } from '../../shared/types'
 
 interface AppState {
   tree: ProjectTree | null
@@ -48,9 +48,9 @@ export const useStore = create<AppState>((set) => ({
   isUpdating: false,
 
   setTree: (tree) => set({ tree }),
-  setSelectedScreen: (fsPath, urlPath) => set({ selectedScreenPath: fsPath, selectedScreenUrlPath: urlPath }),
-  setPreviewState: (state) =>
-    set((prev) => ({ previewState: { ...prev.previewState, ...state } })),
+  setSelectedScreen: (fsPath, urlPath) =>
+    set({ selectedScreenPath: fsPath, selectedScreenUrlPath: urlPath }),
+  setPreviewState: (state) => set((prev) => ({ previewState: { ...prev.previewState, ...state } })),
   toggleSection: (sectionPath) =>
     set((prev) => {
       const next = new Set(prev.expandedSections)
@@ -78,5 +78,5 @@ export const useStore = create<AppState>((set) => ({
   setProjectError: (err) => set({ projectError: err }),
   setProjectIssues: (issues) => set({ projectIssues: issues }),
   setUpdateReady: (updateReady) => set({ updateReady }),
-  setIsUpdating: (isUpdating) => set({ isUpdating })
+  setIsUpdating: (isUpdating) => set({ isUpdating }),
 }))
