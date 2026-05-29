@@ -8,6 +8,7 @@ import log from 'electron-log'
 import { registerIpcHandlers } from './ipc'
 
 let updateReady = false
+let quittingForUpdate = false
 
 function setupUpdater(): void {
   if (is.dev) return
@@ -121,14 +122,18 @@ function createWindow(): void {
   })
 
   mainWindow.on('close', (e) => {
-    if (updateReady) {
+    // Guard against re-entrancy: quitAndInstall() calls app.quit(), which fires
+    // this 'close' event again. Without the flag we'd preventDefault() forever
+    // and the app would hang on the update overlay instead of relaunching.
+    if (updateReady && !quittingForUpdate) {
+      quittingForUpdate = true
       e.preventDefault()
       mainWindow.webContents.send('app:prepare-update')
       setTimeout(() => {
         try {
           autoUpdater.quitAndInstall(false, true)
         } catch (err) {
-          console.error('Failed to apply update:', err)
+          log.error('Failed to apply update:', err)
           mainWindow.destroy()
           app.quit()
         }
