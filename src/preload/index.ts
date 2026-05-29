@@ -78,6 +78,12 @@ const api = {
     return () => ipcRenderer.removeListener('app:prepare-update', handler)
   },
 
+  onUpdateProgress: (callback: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => void) => {
+    const handler = (_: unknown, progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => callback(progress)
+    ipcRenderer.on('update:progress', handler)
+    return () => ipcRenderer.removeListener('update:progress', handler)
+  },
+
   repairIssueAuto: (kind: string, targetPath: string): Promise<void> =>
     ipcRenderer.invoke('issue:repairAuto', kind, targetPath),
 

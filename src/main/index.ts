@@ -14,6 +14,22 @@ function setupUpdater(): void {
   try {
     autoUpdater.checkForUpdates()
 
+    autoUpdater.on('update-available', () => {
+      autoUpdater.downloadUpdate()
+    })
+
+    autoUpdater.on('download-progress', (progress) => {
+      const mainWindow = BrowserWindow.getAllWindows()[0]
+      if (mainWindow) {
+        mainWindow.webContents.send('update:progress', {
+          percent: Math.round(progress.percent),
+          bytesPerSecond: progress.bytesPerSecond,
+          transferred: progress.transferred,
+          total: progress.total
+        })
+      }
+    })
+
     autoUpdater.on('update-downloaded', () => {
       updateReady = true
       const mainWindow = BrowserWindow.getAllWindows()[0]

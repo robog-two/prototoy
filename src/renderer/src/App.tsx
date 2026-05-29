@@ -30,6 +30,7 @@ export default function App(): React.ReactElement {
   const { tree, setTree, setPreviewState, toast, clearToast, previewState, projectError, setProjectError, projectIssues, setProjectIssues, updateReady, setUpdateReady, isUpdating, setIsUpdating } = useStore()
   const [showLogs, setShowLogs] = useState(false)
   const [logs, setLogs] = useState<string[]>([])
+  const [updateProgress, setUpdateProgress] = useState<{ percent: number; bytesPerSecond: number; transferred: number; total: number } | null>(null)
 
   useEffect(() => {
     // Electron drag-and-drop requires document-level listeners
@@ -53,6 +54,7 @@ export default function App(): React.ReactElement {
     const unsubIssues = window.api.onProjectIssues((issues) => setProjectIssues(issues))
     const unsubUpdateReady = window.api.onUpdateReady(() => setUpdateReady(true))
     const unsubPrepareUpdate = window.api.onPrepareUpdate(() => setIsUpdating(true))
+    const unsubProgress = window.api.onUpdateProgress((progress) => setUpdateProgress(progress))
     return () => {
       document.removeEventListener('dragover', handleDocumentDragover)
       document.removeEventListener('drop', handleDocumentDrop)
@@ -62,6 +64,7 @@ export default function App(): React.ReactElement {
       unsubIssues()
       unsubUpdateReady()
       unsubPrepareUpdate()
+      unsubProgress()
     }
   }, [])
 
@@ -137,7 +140,7 @@ export default function App(): React.ReactElement {
           onClose={() => setProjectIssues(null)}
         />
       )}
-      {isUpdating && <UpdatingOverlay />}
+      {isUpdating && <UpdatingOverlay progress={updateProgress} />}
     </div>
   )
 }
@@ -446,67 +449,63 @@ function Toast({ message }: { message: string }): React.ReactElement {
   return <div className="toast">{message}</div>
 }
 
-function UpdatingOverlay(): React.ReactElement {
+function UpdatingOverlay({ progress }: { progress: { percent: number; bytesPerSecond: number; transferred: number; total: number } | null }): React.ReactElement {
+  const percent = progress?.percent ?? 0
+
   return (
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'var(--color-paper)',
+      background: 'rgba(0, 0, 0, 0.3)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 9999,
-      backdropFilter: 'blur(4px)'
+      backdropFilter: 'blur(2px)'
     }}>
       <div style={{
+        background: 'var(--color-paper)',
+        border: '1px solid var(--color-paper-3)',
+        borderRadius: 8,
+        padding: 'var(--sp-6)',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
-        gap: 'var(--sp-5)',
-        textAlign: 'center'
+        gap: 'var(--sp-4)',
+        width: 240,
+        boxShadow: 'var(--shadow-hard)'
       }}>
         <div style={{
-          fontSize: 'var(--fs-lg)',
+          fontSize: 'var(--fs-sm)',
           fontWeight: 'bold',
-          color: 'var(--color-ink)'
+          color: 'var(--color-ink)',
+          textAlign: 'center'
         }}>
           Updating Prototoy…
         </div>
         <div style={{
-          display: 'flex',
-          gap: 'var(--sp-2)'
+          width: '100%',
+          height: 4,
+          background: 'var(--color-paper-3)',
+          borderRadius: 2,
+          overflow: 'hidden'
         }}>
-          <span style={{
-            display: 'inline-block',
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
+          <div style={{
+            height: '100%',
             background: 'var(--color-cyan)',
-            animation: 'pulse 1.4s infinite'
-          }} />
-          <span style={{
-            display: 'inline-block',
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            background: 'var(--color-green)',
-            animation: 'pulse 1.4s infinite 0.2s'
-          }} />
-          <span style={{
-            display: 'inline-block',
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            background: 'var(--color-yellow)',
-            animation: 'pulse 1.4s infinite 0.4s'
+            borderRadius: 2,
+            width: `${percent}%`,
+            transition: 'width 0.3s ease'
           }} />
         </div>
-        <style>{`
-          @keyframes pulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 1; }
-          }
-        `}</style>
+        {progress && (
+          <div style={{
+            fontSize: 'var(--fs-xs)',
+            color: 'var(--color-ink-60)',
+            textAlign: 'center'
+          }}>
+            {percent}%
+          </div>
+        )}
       </div>
     </div>
   )
