@@ -28,6 +28,9 @@ mac:
   # Self-signed code-signing identity (CN of the cert in .signing/).
   # Required for Squirrel.Mac auto-updates; the app is NOT Apple-notarized.
   identity: Prototoy Self-Signed
+  # No notarization, so the hardened runtime only causes library-validation
+  # crashes with a self-signed (no Team ID) cert. Disable it.
+  hardenedRuntime: false
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
