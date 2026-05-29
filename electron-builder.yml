@@ -20,11 +20,6 @@ asarUnpack:
   - node_modules/react/**
   - node_modules/react-dom/**
   - node_modules/scheduler/**
-win:
-  icon: build/icon/icon.png
-  target:
-    - nsis
-    - portable
 mac:
   icon: build/icon/icon.png
   category: public.app-category.developer-tools
