@@ -5,9 +5,10 @@
 /**/.DS_Store
 /build/*
 
-# But allow the generation script and documentation
+# But allow the generation script, documentation, and signing entitlements
 !/build/generate-icons.js
 !/build/README.md
+!/build/entitlements.mac.plist
 /dist
 
 # Code-signing material — never commit private keys / .p12

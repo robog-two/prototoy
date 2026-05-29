@@ -31,12 +31,48 @@ jobs:
       - name: Set version from tag
         run: npm version ${GITHUB_REF_NAME#v} --no-git-tag-version || true
 
+      - name: Import & trust signing certificate
+        env:
+          MAC_CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          MAC_CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/build.keychain-db"
+          KEYCHAIN_PW="$(openssl rand -base64 24)"
+          CERT_P12="$RUNNER_TEMP/cert.p12"
+          CERT_PEM="$RUNNER_TEMP/cert.pem"
+
+          echo -n "$MAC_CSC_LINK" | base64 --decode > "$CERT_P12"
+
+          # Dedicated keychain holding the cert + private key
+          security create-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PW" "$KEYCHAIN"
+          security import "$CERT_P12" -k "$KEYCHAIN" -P "$MAC_CSC_KEY_PASSWORD" -T /usr/bin/codesign -A
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PW" "$KEYCHAIN"
+
+          # A self-signed cert is untrusted, so `security find-identity -v` (which
+          # electron-builder uses to pick the identity) ignores it and falls back
+          # to ad-hoc signing. Trust it for code signing in the admin domain.
+          # GitHub runners grant passwordless sudo, so this is non-interactive.
+          openssl pkcs12 -in "$CERT_P12" -clcerts -nokeys -nodes \
+            -passin pass:"$MAC_CSC_KEY_PASSWORD" -out "$CERT_PEM"
+          sudo security add-trusted-cert -d -r trustRoot -p codeSign \
+            -k /Library/Keychains/System.keychain "$CERT_PEM"
+
+          # Put our keychain on the search list so the private key is discoverable
+          security list-keychains -d user -s "$KEYCHAIN" \
+            $(security list-keychains -d user | sed 's/[\" ]//g')
+
+          echo "Valid code-signing identities:"
+          security find-identity -v -p codesigning
+          echo "CSC_KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
+
       - name: Build and package
         env:
-          # Self-signed cert (base64 .p12) imported into a temp keychain by
-          # electron-builder. Required so Squirrel.Mac can apply auto-updates.
-          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          # Sign from the prepared keychain. CSC_LINK is intentionally NOT set —
+          # that would make electron-builder spin up its own temp keychain
+          # (without our trust setting) and fall back to ad-hoc signing.
+          CSC_KEYCHAIN: ${{ env.CSC_KEYCHAIN }}
         run: npm run icons && npx electron-vite build && npx electron-builder --publish never
 
       - name: Upload macOS artifacts
