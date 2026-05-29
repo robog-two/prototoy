@@ -1511,6 +1511,7 @@ input:focus, textarea:focus {
   padding: var(--sp-8);
   gap: var(--sp-8);
   overflow: hidden;
+  min-height: 0;
 }
 
 .pp-header {
@@ -1580,7 +1581,8 @@ input:focus, textarea:focus {
 .pp-content {
   flex: 1;
   overflow-y: auto;
-  min-height: 200px;
+  min-height: 0;
+  padding-top: var(--sp-2);
 }
 
 .pp-footer {
