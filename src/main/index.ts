@@ -6,10 +6,32 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { autoUpdater } from 'electron-updater'
 import { registerIpcHandlers } from './ipc'
 
+let updateReady = false
+
 function setupUpdater(): void {
   if (is.dev) return
 
-  autoUpdater.checkForUpdatesAndNotify()
+  try {
+    autoUpdater.checkForUpdates()
+
+    autoUpdater.on('update-downloaded', () => {
+      updateReady = true
+      const mainWindow = BrowserWindow.getAllWindows()[0]
+      if (mainWindow) {
+        mainWindow.webContents.send('update:ready')
+      }
+    })
+
+    autoUpdater.on('error', (error) => {
+      console.error('Update error:', error)
+    })
+  } catch (err) {
+    console.error('Failed to setup updater:', err)
+  }
+}
+
+function getUpdateReady(): boolean {
+  return updateReady
 }
 
 function registerLinuxDesktop(): void {
@@ -69,6 +91,22 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
+  })
+
+  mainWindow.on('close', (e) => {
+    if (updateReady) {
+      e.preventDefault()
+      mainWindow.webContents.send('app:prepare-update')
+      setTimeout(() => {
+        try {
+          autoUpdater.quitAndInstall(false, true)
+        } catch (err) {
+          console.error('Failed to apply update:', err)
+          mainWindow.destroy()
+          app.quit()
+        }
+      }, 800)
+    }
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {

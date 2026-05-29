@@ -13,6 +13,8 @@ interface AppState {
   toast: string | null
   projectError: { message: string; path: string } | null
   projectIssues: ProjectIssue[] | null
+  updateReady: boolean
+  isUpdating: boolean
 
   setTree: (tree: ProjectTree | null) => void
   setSelectedScreen: (fsPath: string | null, urlPath: string | null) => void
@@ -26,6 +28,8 @@ interface AppState {
   clearToast: () => void
   setProjectError: (err: { message: string; path: string } | null) => void
   setProjectIssues: (issues: ProjectIssue[] | null) => void
+  setUpdateReady: (ready: boolean) => void
+  setIsUpdating: (updating: boolean) => void
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -40,6 +44,8 @@ export const useStore = create<AppState>((set) => ({
   toast: null,
   projectError: null,
   projectIssues: null,
+  updateReady: false,
+  isUpdating: false,
 
   setTree: (tree) => set({ tree }),
   setSelectedScreen: (fsPath, urlPath) => set({ selectedScreenPath: fsPath, selectedScreenUrlPath: urlPath }),
@@ -70,5 +76,7 @@ export const useStore = create<AppState>((set) => ({
   showToast: (message) => set({ toast: message }),
   clearToast: () => set({ toast: null }),
   setProjectError: (err) => set({ projectError: err }),
-  setProjectIssues: (issues) => set({ projectIssues: issues })
+  setProjectIssues: (issues) => set({ projectIssues: issues }),
+  setUpdateReady: (updateReady) => set({ updateReady }),
+  setIsUpdating: (isUpdating) => set({ isUpdating })
 }))

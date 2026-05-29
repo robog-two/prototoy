@@ -67,6 +67,15 @@ function sendTreeUpdate(): void {
 }
 
 export function registerIpcHandlers(): void {
+  ipcMain.handle('app:quitAndUpdate', async () => {
+    const { autoUpdater } = require('electron-updater')
+    try {
+      autoUpdater.quitAndInstall(false, true)
+    } catch (err) {
+      console.error('Failed to quit and update:', err)
+    }
+  })
+
   ipcMain.handle('project:create', async (_, name: string, description: string) => {
     const { canceled, filePath } = await dialog.showSaveDialog({
       title: 'Create New Project',

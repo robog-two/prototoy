@@ -66,6 +66,18 @@ const api = {
     return () => ipcRenderer.removeListener('project:issues', handler)
   },
 
+  onUpdateReady: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on('update:ready', handler)
+    return () => ipcRenderer.removeListener('update:ready', handler)
+  },
+
+  onPrepareUpdate: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on('app:prepare-update', handler)
+    return () => ipcRenderer.removeListener('app:prepare-update', handler)
+  },
+
   repairIssueAuto: (kind: string, targetPath: string): Promise<void> =>
     ipcRenderer.invoke('issue:repairAuto', kind, targetPath),
 

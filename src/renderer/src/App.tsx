@@ -27,7 +27,7 @@ class ErrorBoundary extends React.Component<
 }
 
 export default function App(): React.ReactElement {
-  const { tree, setTree, setPreviewState, toast, clearToast, previewState, projectError, setProjectError, projectIssues, setProjectIssues } = useStore()
+  const { tree, setTree, setPreviewState, toast, clearToast, previewState, projectError, setProjectError, projectIssues, setProjectIssues, updateReady, setUpdateReady, isUpdating, setIsUpdating } = useStore()
   const [showLogs, setShowLogs] = useState(false)
   const [logs, setLogs] = useState<string[]>([])
 
@@ -51,6 +51,8 @@ export default function App(): React.ReactElement {
     )
     const unsubError = window.api.onProjectError((err) => setProjectError(err))
     const unsubIssues = window.api.onProjectIssues((issues) => setProjectIssues(issues))
+    const unsubUpdateReady = window.api.onUpdateReady(() => setUpdateReady(true))
+    const unsubPrepareUpdate = window.api.onPrepareUpdate(() => setIsUpdating(true))
     return () => {
       document.removeEventListener('dragover', handleDocumentDragover)
       document.removeEventListener('drop', handleDocumentDrop)
@@ -58,6 +60,8 @@ export default function App(): React.ReactElement {
       unsubPreview()
       unsubError()
       unsubIssues()
+      unsubUpdateReady()
+      unsubPrepareUpdate()
     }
   }, [])
 
@@ -73,6 +77,12 @@ export default function App(): React.ReactElement {
     setShowLogs(true)
   }
 
+  function handleCloseWindow(): void {
+    if (updateReady) {
+      window.close()
+    }
+  }
+
   return (
     <div className="app-window">
       {tree && (
@@ -85,6 +95,11 @@ export default function App(): React.ReactElement {
                 onClick={handleStatusClick}
               >
                 {previewState.status === 'ready' ? 'Ready' : previewState.status === 'installing' ? 'Installing…' : 'Starting…'}
+              </button>
+            )}
+            {updateReady && (
+              <button className="status-pill update-ready" onClick={handleCloseWindow}>
+                Update available
               </button>
             )}
           </div>
@@ -122,6 +137,7 @@ export default function App(): React.ReactElement {
           onClose={() => setProjectIssues(null)}
         />
       )}
+      {isUpdating && <UpdatingOverlay />}
     </div>
   )
 }
@@ -428,4 +444,70 @@ function PanelError({ message, onDismiss, dismissLabel }: { message: string; onD
 
 function Toast({ message }: { message: string }): React.ReactElement {
   return <div className="toast">{message}</div>
+}
+
+function UpdatingOverlay(): React.ReactElement {
+  return (
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'var(--color-paper)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 9999,
+      backdropFilter: 'blur(4px)'
+    }}>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 'var(--sp-5)',
+        textAlign: 'center'
+      }}>
+        <div style={{
+          fontSize: 'var(--fs-lg)',
+          fontWeight: 'bold',
+          color: 'var(--color-ink)'
+        }}>
+          Updating Prototoy…
+        </div>
+        <div style={{
+          display: 'flex',
+          gap: 'var(--sp-2)'
+        }}>
+          <span style={{
+            display: 'inline-block',
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: 'var(--color-cyan)',
+            animation: 'pulse 1.4s infinite'
+          }} />
+          <span style={{
+            display: 'inline-block',
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: 'var(--color-green)',
+            animation: 'pulse 1.4s infinite 0.2s'
+          }} />
+          <span style={{
+            display: 'inline-block',
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: 'var(--color-yellow)',
+            animation: 'pulse 1.4s infinite 0.4s'
+          }} />
+        </div>
+        <style>{`
+          @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+          }
+        `}</style>
+      </div>
+    </div>
+  )
 }
