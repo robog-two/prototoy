@@ -1,167 +1,69 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import {
-  parseCssVariables,
-  listSharedComponents,
-  listAssets,
-  collectScreensInSection
-} from './fileSystem'
+
+// ---------------------------------------------------------------------------
+// Per-section CLAUDE.md
+//
+// This file is loaded into *every* Claude Code conversation opened in a
+// section, so it stays short: identity, hard constraints, and pointers only.
+// Detailed how-to lives in the skills below (progressive disclosure), and
+// live inventories (screens/components/assets/tokens) are discovered on demand
+// rather than embedded here — Claude can read them from the filesystem.
+// ---------------------------------------------------------------------------
 
 export function generateSectionClaudeMd(
   sectionPath: string,
-  projectPath: string,
   projectName: string,
   description: string
 ): string {
-  const cssVars = parseCssVariables(projectPath)
-  const components = listSharedComponents(projectPath)
-  const assets = listAssets(projectPath)
-  const screens = collectScreensInSection(sectionPath)
   const sectionName = path.basename(sectionPath)
-
-  const cssVarsSection =
-    Object.keys(cssVars).length > 0
-      ? Object.entries(cssVars)
-          .map(([name, value]) => `- \`${name}\`: ${value}`)
-          .join('\n')
-      : '_No variables defined yet. Add them to a CSS file in the Art assets panel (e.g., `_include/assets/variables.css`)._'
-
-  const componentsSection =
-    components.length > 0
-      ? components
-          .map((c) => `- \`${c}\` — \`import ${c} from '@include/components/${c}'\``)
-          .join('\n')
-      : '_No shared components yet. Add them to `_include/components/`._'
-
-  const assetsSection =
-    assets.length > 0
-      ? assets
-          .map((a) => {
-            const isCss = a.endsWith('.css')
-            return isCss
-              ? `- \`${a}\` — CSS file: \`import '@include/assets/${a}'\``
-              : `- \`${a}\` — \`import asset from '@include/assets/${a}'\``
-          })
-          .join('\n')
-      : '_No assets uploaded yet. Add images, fonts, and CSS files (for colors/typography) to the Art assets panel._'
-
-  const screensSection =
-    screens.length > 0
-      ? screens.map((s) => `- \`${s.relPath}\` — ${s.name}`).join('\n')
-      : '_No screens yet. Create a subfolder with an `index.tsx` file._'
 
   return `# Section: ${sectionName}
 
-**Project**: ${projectName}
-**Description**: ${description || '_No description provided._'}
+This folder is one **section** of the Prototoy prototype **${projectName}**.
+${description ? description : '_No section description provided._'}
 
-## Screens in This Section
+## How this section works
 
-${screensSection}
+- Each **screen** is a subfolder containing an \`index.tsx\` that **default-exports a React component**.
+- Shared components and assets live in \`_include/\` and are imported via the \`@include/...\` alias.
+- The preview routes by folder path — a screen at \`Onboarding/Welcome/index.tsx\` is served at \`/Onboarding/Welcome\`.
 
-## Shared Components
+## Scope — stay in your lane
 
-Reusable UI components for this section:
+**IMPORTANT:** You work only on prototype content. You **MUST NOT** touch Prototoy's infrastructure.
 
-${componentsSection}
+- ✅ **CAN**: create/edit screens in this section, add shared components to \`_include/components/\`, add/edit CSS files in \`_include/assets/\`.
+- ❌ **CANNOT**: modify \`.prototoy/\` config, \`package.json\`, build scripts, vite/webpack config, the preview server, or any Prototoy infrastructure — the parent app manages these.
 
-## Assets
+## Non-negotiable style rules
 
-Images and media files available to import:
+- Style with **inline styles and CSS custom properties only**. Keep colors/fonts/spacing as CSS variables in \`_include/assets/\` and import them.
+- **Do NOT use component libraries** (shadcn, Material UI, Tailwind, Chakra, etc.). This is a bespoke design — pre-built components make it look generic.
+- When unsure about any **visual detail** (color, spacing, size, radius, font), **ask the user** rather than guessing. They have a specific design in mind.
 
-${assetsSection}
+## Where to find more
 
-## CSS Variables
+Detailed workflows live in skills, loaded on demand:
 
-Use these design tokens for consistent styling:
+- **building-screens** — writing and styling a screen, mobile-first responsive layout.
+- **linking-screens** — navigation between screens.
+- **shared-design-system** — using and extending \`_include/\` components, assets, and design tokens.
+- **review-changes** — present your edits for the user to sign off.
 
-${cssVarsSection}
+Discover what already exists instead of guessing:
 
-## Scope for Claude Code Agents
-
-When working in Claude Code, **stay in your lane**: you may edit screens, shared components, and shared styles upon the user's request. However, you **cannot** edit the external build system, preview server, or Prototoy frame itself — these are managed by the parent app and should never be modified.
-
-- ✅ **You CAN**: Create/edit screens in this section, add shared components to \`_include/components/\`, add/edit CSS files in \`_include/assets/\`
-- ❌ **You CANNOT**: Modify \`.prototoy/\` config, package.json, build scripts, webpack/vite config, or any Prototoy infrastructure
-
-## Instructions
-
-Write each screen as a **default-export React component** in its \`index.tsx\`. Follow these rules:
-
-- Use **inline CSS styles** and **CSS custom properties** for all styling.
-- Do **NOT** use component libraries (shadcn, Material UI, Tailwind, Chakra, etc.) — this is a custom design prototype and pre-built components will make it feel generic.
-- When you have any question about a **color, spacing, size, border radius, font, or other visual detail**, ask the user rather than guessing or falling back to defaults. The user has a specific design in mind.
-- **Store colors and fonts as CSS variables** in CSS files in the \`_include/assets/\` folder (e.g., \`_include/assets/colors.css\` or \`_include/assets/typography.css\`), then import them in your screens with \`import '@include/assets/colors.css'\`. This keeps design tokens centralized and reusable across all screens.
-
-### Mobile-First Responsive Design
-
-Design **mobile-first** using CSS media queries:
-
-- Start with styles optimized for the base viewport (416×754px)
-- Use CSS variables for flexible sizing
-- Add media queries for larger screens: \`@media (min-width: 768px) { ... }\`
-- Use flexbox and grid with \`flex-wrap\` and \`flex-direction\` for responsive layouts
-- Avoid fixed widths; prefer \`max-width\` with percentages or CSS variables
-- Test at different viewport sizes by resizing the window
-
-Example:
-\`\`\`jsx
-<div style={{
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 'var(--sp-4)',
-  padding: 'var(--sp-4)',
-  maxWidth: '100%',
-  '@media (min-width: 768px)': {
-    flexDirection: 'row',
-    padding: 'var(--sp-8)'
-  }
-}}>
-  {/* content */}
-</div>
+\`\`\`bash
+ls _include/components/             # shared components
+ls -R _include/assets/              # images, fonts, CSS files
+cat _include/assets/variables.css   # design tokens (CSS variables)
 \`\`\`
-
-- Import shared components via \`@include/components/Name\`, assets via \`@include/assets/filename\`
-- You can inspect available files directly: \`ls ./_include/assets/\` and \`ls ./_include/components/\`
-
-## Linking Between Screens
-
-To create interactive navigation between screens:
-
-1. **Find the target screen's path**: The URL for each screen is derived from its folder structure. For example:
-   - A screen at \`Onboarding/Welcome/index.tsx\` has URL path \`/Onboarding/Welcome\`
-   - A screen at \`Settings/Profile/index.tsx\` has URL path \`/Settings/Profile\`
-
-2. **Create navigation links** using a simple link component or button:
-   \`\`\`jsx
-   <a href="/SectionName/ScreenName" style={{ textDecoration: 'none' }}>
-     <button>Go to next screen</button>
-   </a>
-   \`\`\`
-   Or with an onClick handler:
-   \`\`\`jsx
-   <button onClick={() => window.location.href = '/SectionName/ScreenName'}>
-     Next
-   </button>
-   \`\`\`
-
-3. **Use relative paths** if linking within the same section:
-   \`\`\`jsx
-   <a href="/SectionName/OtherScreen">Link</a>
-   \`\`\`
-
-4. **Return to a previous screen** using the browser back button:
-   \`\`\`jsx
-   <button onClick={() => window.history.back()}>Back</button>
-   \`\`\`
-
-The preview automatically handles routing — just use standard HTML anchors or \`window.location.href\` to navigate, and the preview will load the target screen in the iPhone frame.
 `
 }
 
 export function writeSectionClaudeMd(
   sectionPath: string,
-  projectPath: string,
+  _projectPath: string,
   projectName: string
 ): void {
   const folderConfigPath = path.join(sectionPath, 'folder.json')
@@ -172,12 +74,7 @@ export function writeSectionClaudeMd(
     } catch {}
   }
 
-  const content = generateSectionClaudeMd(
-    sectionPath,
-    projectPath,
-    projectName,
-    description
-  )
+  const content = generateSectionClaudeMd(sectionPath, projectName, description)
   fs.writeFileSync(path.join(sectionPath, 'CLAUDE.md'), content)
 }
 
@@ -199,26 +96,205 @@ export function regenerateAllClaudeMds(
   walk(projectPath)
 }
 
-export function generateSectionSkill(sectionPath: string): void {
-  const skillDir = path.join(sectionPath, '.claude', 'skills')
-  fs.mkdirSync(skillDir, { recursive: true })
+// ---------------------------------------------------------------------------
+// Skills + subagent
+//
+// These are static (independent of project state), so they're constant
+// templates written into each section's `.claude/`. They follow Anthropic's
+// Agent Skills format: gerund `name`, a third-person `description` that says
+// what the skill does *and* when to use it, and a body kept well under the
+// 500-line guideline.
+// ---------------------------------------------------------------------------
 
-  const skillContent = `---
-name: review-changes
-description: Review your changes and let the user decide if they look right
-metadata:
-  scope: section
+const BUILDING_SCREENS_SKILL = `---
+name: building-screens
+description: Guidance for creating and editing screens in a Prototoy section — the React component shape, inline-CSS and CSS-variable styling, the no-component-library rule, and mobile-first responsive layout. Use when creating, editing, or styling a screen (index.tsx).
 ---
 
-Review your edits:
-1. Show the user what changed in the code
-2. Ask if the changes match their intent
-3. Let them decide if further adjustments are needed
+# Building screens
+
+Each screen is a subfolder with an \`index.tsx\` that **default-exports a React component**.
+
+## Styling rules
+
+- Use **inline styles** and **CSS custom properties** for all styling.
+- **Never use component libraries** (shadcn, Material UI, Tailwind, Chakra, etc.). This is a bespoke design — pre-built components make it look generic.
+- Keep colors, fonts, spacing, and radii as CSS variables in \`_include/assets/\` (see the \`shared-design-system\` skill) and reference them with \`var(--token)\`.
+- When a visual detail (color, spacing, size, radius, font) isn't specified, **ask the user** — don't fall back to defaults.
+
+## Mobile-first responsive design
+
+Design **mobile-first**, then add larger breakpoints:
+
+- Start from the base viewport (416×754px).
+- Use CSS variables for flexible sizing; avoid fixed widths — prefer \`max-width\` with percentages or variables.
+- Use flexbox/grid with \`flex-wrap\` and \`flex-direction\` for layouts that reflow.
+- Test by resizing the preview window.
+
+Inline style objects **cannot** hold media queries. Put base layout in inline styles, and breakpoint rules in a CSS file in \`_include/assets/\` that you import and target by class:
+
+\`\`\`css
+/* _include/assets/example.css */
+.layout { flex-direction: column; padding: var(--sp-4); }
+@media (min-width: 768px) {
+  .layout { flex-direction: row; padding: var(--sp-8); }
+}
+\`\`\`
+
+\`\`\`jsx
+import '@include/assets/example.css'
+
+export default function Example() {
+  return (
+    <div className="layout" style={{ display: 'flex', gap: 'var(--sp-4)', maxWidth: '100%' }}>
+      {/* content */}
+    </div>
+  )
+}
+\`\`\`
+
+For navigation between screens, see the \`linking-screens\` skill. For shared components, assets, and tokens, see \`shared-design-system\`.
+`
+
+const LINKING_SCREENS_SKILL = `---
+name: linking-screens
+description: How to create navigation between screens in a Prototoy prototype — deriving a screen's URL from its folder path, linking with anchors or window.location, and back navigation. Use when wiring up navigation, buttons, or links between screens.
+---
+
+# Linking between screens
+
+The preview routes by folder structure, so a screen's URL is its path under the project:
+
+- \`Onboarding/Welcome/index.tsx\` → \`/Onboarding/Welcome\`
+- \`Settings/Profile/index.tsx\` → \`/Settings/Profile\`
+
+## Navigate with a standard anchor
+
+\`\`\`jsx
+<a href="/SectionName/ScreenName" style={{ textDecoration: 'none' }}>
+  <button>Go to next screen</button>
+</a>
+\`\`\`
+
+Or programmatically:
+
+\`\`\`jsx
+<button onClick={() => { window.location.href = '/SectionName/ScreenName' }}>
+  Next
+</button>
+\`\`\`
+
+## Go back
+
+\`\`\`jsx
+<button onClick={() => window.history.back()}>Back</button>
+\`\`\`
+
+The preview handles routing automatically — use plain anchors or \`window.location.href\` and the target screen loads in the phone frame.
+`
+
+const SHARED_DESIGN_SYSTEM_SKILL = `---
+name: shared-design-system
+description: How to use and extend a Prototoy project's shared design system — importing shared components and assets via the @include alias, using CSS-variable design tokens, and discovering what already exists. Use when importing shared components or assets, using design tokens, or adding new shared resources.
+---
+
+# Shared design system
+
+Shared code and assets live in the project's \`_include/\` folder (symlinked into every section) and are imported via the \`@include\` alias.
+
+## Discover what exists
+
+Always check before creating something new or guessing a name:
+
+\`\`\`bash
+ls _include/components/             # shared React components
+ls -R _include/assets/              # images, fonts, CSS files
+cat _include/assets/variables.css   # design tokens (CSS custom properties)
+\`\`\`
+
+## Import conventions
+
+- **Component:** \`import ComponentName from '@include/components/ComponentName'\`
+- **Image / font / other asset:** \`import asset from '@include/assets/file.png'\`
+- **CSS file (tokens, fonts):** \`import '@include/assets/file.css'\`
+
+## Design tokens
+
+Colors, fonts, spacing, and radii are CSS custom properties defined in \`_include/assets/variables.css\` (and any other CSS files there). Reference them with \`var(--token-name)\` and import the CSS file in the screen.
+
+## Adding new shared resources
+
+- New reusable component → add a \`.tsx\` file to \`_include/components/\`.
+- New token → add a CSS variable to \`_include/assets/variables.css\` (or another CSS file there).
+- New image/font → place it in \`_include/assets/\` (in the app, use the Art assets panel).
+
+Centralizing tokens and components here keeps every screen consistent and reusable.
+`
+
+const REVIEW_CHANGES_SKILL = `---
+name: review-changes
+description: Presents the edits made to screens so the user can decide whether they match their intent, without building or running anything. Use when you have finished a set of screen changes and want the user to sign off.
+---
+
+# Review changes
+
+Walk the user through what you changed and let them decide:
+
+1. Show what changed in the code — the screens/components you edited and the key differences.
+2. Ask whether the changes match their intent.
+3. Let them decide if further adjustments are needed.
 
 Don't run or build anything — just present the changes and wait for feedback.
 `
 
-  fs.writeFileSync(path.join(skillDir, 'review-changes.md'), skillContent)
+const SCREEN_REVIEWER_AGENT = `---
+name: screen-reviewer
+description: Reviews changes to screens in a fresh context for adherence to this prototype's design constraints (inline CSS and CSS variables, no component libraries, correct @include usage, design tokens) and flags correctness gaps. Use after editing a screen to get an independent review.
+tools: Read, Grep, Glob, Bash
+---
+
+You are reviewing edits to screens in a Prototoy prototype. You did not write this code — evaluate it on its own terms.
+
+Check the changed screens against these constraints:
+
+- **Styling:** inline styles and CSS custom properties only. Flag any component library (shadcn, Material UI, Tailwind, Chakra, etc.).
+- **Design tokens:** colors, fonts, spacing, and radii come from CSS variables in \`_include/assets/\` (read \`variables.css\`). Flag stray literals that duplicate an existing token.
+- **Imports:** shared code and assets use the \`@include/...\` alias correctly (\`@include/components/...\`, \`@include/assets/...\`).
+- **Component shape:** each screen \`index.tsx\` default-exports a React component.
+- **Scope:** no edits to Prototoy infrastructure (\`.prototoy/\`, \`package.json\`, build/vite config, the preview server).
+- **Responsive:** layouts are mobile-first; media queries live in CSS files, not inline style objects.
+
+Report only gaps that affect correctness or violate these constraints — don't invent style preferences or over-engineer. For each finding give the file, the issue, and a concrete fix. If everything holds, say so plainly.
+`
+
+function writeSkill(skillsDir: string, name: string, body: string): void {
+  const dir = path.join(skillsDir, name)
+  fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(path.join(dir, 'SKILL.md'), body)
+}
+
+// Writes the on-demand skills and the verification subagent into a section's
+// `.claude/` directory, and removes the legacy flat skill file if present.
+export function generateSectionResources(sectionPath: string): void {
+  const skillsDir = path.join(sectionPath, '.claude', 'skills')
+  fs.mkdirSync(skillsDir, { recursive: true })
+
+  writeSkill(skillsDir, 'building-screens', BUILDING_SCREENS_SKILL)
+  writeSkill(skillsDir, 'linking-screens', LINKING_SCREENS_SKILL)
+  writeSkill(skillsDir, 'shared-design-system', SHARED_DESIGN_SYSTEM_SKILL)
+  writeSkill(skillsDir, 'review-changes', REVIEW_CHANGES_SKILL)
+
+  // Migrate away from the old flat-file skill format.
+  const legacyReview = path.join(skillsDir, 'review-changes.md')
+  try {
+    if (fs.existsSync(legacyReview)) fs.unlinkSync(legacyReview)
+  } catch {
+    /* non-fatal */
+  }
+
+  const agentsDir = path.join(sectionPath, '.claude', 'agents')
+  fs.mkdirSync(agentsDir, { recursive: true })
+  fs.writeFileSync(path.join(agentsDir, 'screen-reviewer.md'), SCREEN_REVIEWER_AGENT)
 }
 
 export function regenerateAllSkills(projectPath: string): void {
@@ -228,7 +304,7 @@ export function regenerateAllSkills(projectPath: string): void {
       if (!entry.isDirectory() || entry.name.startsWith('.') || entry.name === '_include') continue
       const childPath = path.join(dir, entry.name)
       if (fs.existsSync(path.join(childPath, 'folder.json'))) {
-        generateSectionSkill(childPath)
+        generateSectionResources(childPath)
         walk(childPath)
       }
     }

@@ -38,7 +38,7 @@ function countAssets(nodes: AssetNode[]): number {
   }
   return count
 }
-import { writeSectionClaudeMd, regenerateAllClaudeMds, regenerateAllSkills } from './claudeMd'
+import { writeSectionClaudeMd, regenerateAllClaudeMds, regenerateAllSkills, generateSectionResources } from './claudeMd'
 import {
   startPreviewServer,
   stopPreviewServer,
@@ -108,6 +108,7 @@ export function registerIpcHandlers(): void {
     const sectionPath = createSection(parentPath, name, description, currentProjectPath ?? undefined)
     if (currentProjectPath) {
       writeSectionClaudeMd(sectionPath, currentProjectPath, getProjectName())
+      try { generateSectionResources(sectionPath) } catch { /* non-fatal */ }
       const parentSection = findSectionAncestor(parentPath)
       if (parentSection) {
         writeSectionClaudeMd(parentSection, currentProjectPath, getProjectName(), getPreviewPort())
