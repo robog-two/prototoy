@@ -32,10 +32,10 @@ jobs:
         run: npm run icons
 
       - name: Build and package
-        run: npm run package
+        run: npm run icons && npx electron-vite build && npx electron-builder --publish never
 
       - name: Upload artifacts
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
