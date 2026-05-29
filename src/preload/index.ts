@@ -25,8 +25,8 @@ const api = {
   getPreviewLogs: (): Promise<string[]> => ipcRenderer.invoke('preview:getLogs'),
 
   copyToClipboard: (text: string): Promise<void> => ipcRenderer.invoke('clipboard:write', text),
-  saveScreenshot: (rect?: { x: number; y: number; width: number; height: number }): Promise<string | undefined> => ipcRenderer.invoke('screenshot:save', rect),
-  startRecording: (rect?: { x: number; y: number; width: number; height: number }): Promise<void> => ipcRenderer.invoke('recording:start', rect),
+  saveScreenshot: (frac?: { xFrac: number; yFrac: number; wFrac: number; hFrac: number }): Promise<string | undefined> => ipcRenderer.invoke('screenshot:save', frac),
+  startRecording: (frac?: { xFrac: number; yFrac: number; wFrac: number; hFrac: number }): Promise<void> => ipcRenderer.invoke('recording:start', frac),
   stopRecording: (): Promise<string | undefined> => ipcRenderer.invoke('recording:stop'),
 
   listAssets: (): Promise<string[]> => ipcRenderer.invoke('assets:list'),

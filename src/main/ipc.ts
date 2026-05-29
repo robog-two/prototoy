@@ -161,13 +161,26 @@ export function registerIpcHandlers(): void {
   let recordingInterval: ReturnType<typeof setInterval> | null = null
   let recordingFrames: { data: Buffer; width: number; height: number }[] = []
 
-  ipcMain.handle('recording:start', (_event, rect?: { x: number; y: number; width: number; height: number }) => {
+  type FracRect = { xFrac: number; yFrac: number; wFrac: number; hFrac: number }
+
+  function fracToPixelRect(frac: FracRect, imgW: number, imgH: number) {
+    return {
+      x: Math.round(frac.xFrac * imgW),
+      y: Math.round(frac.yFrac * imgH),
+      width: Math.round(frac.wFrac * imgW),
+      height: Math.round(frac.hFrac * imgH)
+    }
+  }
+
+  ipcMain.handle('recording:start', (_event, frac?: FracRect) => {
     recordingFrames = []
     if (recordingInterval) clearInterval(recordingInterval)
     recordingInterval = setInterval(async () => {
       const win = getMainWindow()
       if (!win) return
-      const image = await win.webContents.capturePage(rect)
+      const full = await win.webContents.capturePage()
+      const fullSize = full.getSize()
+      const image = frac ? full.crop(fracToPixelRect(frac, fullSize.width, fullSize.height)) : full
       const { width, height } = image.getSize()
       const bgra = image.getBitmap()
       const rgba = Buffer.alloc(bgra.length)
@@ -212,7 +225,7 @@ export function registerIpcHandlers(): void {
     return filePath
   })
 
-  ipcMain.handle('screenshot:save', async (_event, rect?: { x: number; y: number; width: number; height: number }) => {
+  ipcMain.handle('screenshot:save', async (_event, frac?: FracRect) => {
     const win = getMainWindow()
     if (!win) return
     const { canceled, filePath } = await dialog.showSaveDialog(win, {
@@ -220,7 +233,9 @@ export function registerIpcHandlers(): void {
       filters: [{ name: 'PNG Image', extensions: ['png'] }]
     })
     if (canceled || !filePath) return
-    const image = await win.webContents.capturePage(rect)
+    const full = await win.webContents.capturePage()
+    const fullSize = full.getSize()
+    const image = frac ? full.crop(fracToPixelRect(frac, fullSize.width, fullSize.height)) : full
     fs.writeFileSync(filePath, image.toPNG())
     return filePath
   })

@@ -34,65 +34,58 @@ export default function PhoneView(): React.ReactElement {
   const isLoading = previewState.status === 'installing' || previewState.status === 'starting'
   const isReady = previewState.status === 'ready' && !!port
 
-  // Track cursor inside iframe (same-origin, no permission needed)
+  // The iframe is cross-origin (different localhost port), so contentDocument is null.
+  // Instead, the preview server injects a script that postMessages cursor events up.
   useEffect(() => {
     const iframe = iframeRef.current
-    if (!iframe || !isReady) return
+    if (!isReady || !iframe) return
 
-    const attach = (): (() => void) | undefined => {
-      const doc = iframe.contentDocument
-      if (!doc) return
+    const onMessage = (e: MessageEvent) => {
+      const d = e.data
+      if (!d || !d.__prototoy) return
+      const screenEl = phoneScreenRef.current
+      if (!screenEl) return
 
-      const onMove = (e: MouseEvent) => {
-        const screenEl = phoneScreenRef.current
-        if (!screenEl) return
-        const screenRect = screenEl.getBoundingClientRect()
-        const iframeRect = iframe.getBoundingClientRect()
-        // iframe is scaled down by 1/SCALE; convert iframe coords to visual parent coords
-        const visX = e.clientX / SCALE
-        const visY = e.clientY / SCALE
-        setCursor({
-          x: iframeRect.left - screenRect.left + visX,
-          y: iframeRect.top - screenRect.top + visY
-        })
+      if (d.type === 'leave') {
+        setCursor(null)
+        setClicking(false)
+        return
       }
-      const onLeave = () => setCursor(null)
-      const onDown = () => setClicking(true)
-      const onUp = () => setClicking(false)
 
-      doc.addEventListener('mousemove', onMove)
-      doc.addEventListener('mouseleave', onLeave)
-      doc.addEventListener('mousedown', onDown)
-      doc.addEventListener('mouseup', onUp)
-      return () => {
-        doc.removeEventListener('mousemove', onMove)
-        doc.removeEventListener('mouseleave', onLeave)
-        doc.removeEventListener('mousedown', onDown)
-        doc.removeEventListener('mouseup', onUp)
-      }
+      // d.x/y are in the iframe's own CSS pixel space (unscaled).
+      // The iframe has transform scale(1/SCALE) with transformOrigin top-left,
+      // so visual position = iframeCoord * (1/SCALE).
+      const iframeRect = iframe.getBoundingClientRect()
+      const screenRect = screenEl.getBoundingClientRect()
+      const visX = d.x / SCALE
+      const visY = d.y / SCALE
+      setCursor({
+        x: iframeRect.left - screenRect.left + visX,
+        y: iframeRect.top - screenRect.top + visY
+      })
+
+      if (d.type === 'down') setClicking(true)
+      else if (d.type === 'up') setClicking(false)
     }
 
-    let cleanup = attach()
-    const onLoad = () => { cleanup?.(); cleanup = attach() }
-    iframe.addEventListener('load', onLoad)
-    return () => {
-      iframe.removeEventListener('load', onLoad)
-      cleanup?.()
-    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
   }, [isReady])
 
-  // Use the phone-screen div (no CSS transform, overflow:hidden) so coordinates
-  // are stable regardless of window size or DPR — avoids scale() transform confusion.
-  function getPhoneScreenRect() {
+  // Send normalized fractions instead of pixel coords so the main process can
+  // compute the crop against the captured image's actual pixel dimensions,
+  // bypassing all DPR / CSS-vs-physical-pixel ambiguity.
+  function getPhoneScreenFrac() {
     const el = phoneScreenRef.current
     if (!el) return undefined
     const r = el.getBoundingClientRect()
-    const dpr = window.devicePixelRatio ?? 1
+    const vpW = window.innerWidth
+    const vpH = window.innerHeight
     return {
-      x: Math.round(r.left * dpr),
-      y: Math.round(r.top * dpr),
-      width: Math.round(r.width * dpr),
-      height: Math.round(r.height * dpr)
+      xFrac: r.left / vpW,
+      yFrac: r.top / vpH,
+      wFrac: r.width / vpW,
+      hFrac: r.height / vpH
     }
   }
 
@@ -102,7 +95,7 @@ export default function PhoneView(): React.ReactElement {
       const filePath = await window.api.stopRecording()
       if (filePath) useStore.getState().showToast('Recording saved')
     } else {
-      await window.api.startRecording(getPhoneScreenRect())
+      await window.api.startRecording(getPhoneScreenFrac())
       setIsRecording(true)
     }
   }
@@ -114,7 +107,7 @@ export default function PhoneView(): React.ReactElement {
   }
 
   async function handleScreenshot(): Promise<void> {
-    const filePath = await window.api.saveScreenshot(getPhoneScreenRect())
+    const filePath = await window.api.saveScreenshot(getPhoneScreenFrac())
     if (filePath) {
       useStore.getState().showToast('Screenshot saved')
     }
@@ -204,7 +197,7 @@ export default function PhoneView(): React.ReactElement {
                 {screenName && <span className="dim">{screenName}</span>}
               </div>
               <div className="phone">
-                <div className="phone-screen" ref={phoneScreenRef} style={{ cursor: cursor ? 'none' : undefined }}>
+                <div className="phone-screen" ref={phoneScreenRef} style={{ cursor: 'none' }}>
                   <div className="phone-status" style={{ zIndex: '10' }}>
                     <span>9:41</span>
                     <div className="phone-stat-right">

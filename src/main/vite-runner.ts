@@ -30,13 +30,33 @@ function resolveAppModules(): Plugin {
   }
 }
 
+// Injects a tiny script that forwards cursor events to the parent Electron renderer
+// via postMessage — needed because the iframe is cross-origin (different port).
+function cursorBridge(): Plugin {
+  const script = `<style>*,*::before,*::after{cursor:none!important}</style><script>
+(function(){
+  function send(type,x,y){window.parent.postMessage({__prototoy:true,type,x,y},'*')}
+  document.addEventListener('mousemove',function(e){send('move',e.clientX,e.clientY)})
+  document.addEventListener('mousedown',function(e){send('down',e.clientX,e.clientY)})
+  document.addEventListener('mouseup',function(e){send('up',e.clientX,e.clientY)})
+  document.addEventListener('mouseleave',function(){send('leave',0,0)})
+})()
+</script>`
+  return {
+    name: 'cursor-bridge',
+    transformIndexHtml(html: string) {
+      return html.replace('</head>', script + '</head>')
+    }
+  }
+}
+
 async function main(): Promise<void> {
   const server = await createServer({
     configFile: false,
     root: previewDir,
     cacheDir: path.join(previewDir, '.vite'),
     appType: 'spa',
-    plugins: [resolveAppModules(), react()],
+    plugins: [resolveAppModules(), react(), cursorBridge()],
     server: {
       port,
       strictPort: true,

@@ -1,5 +1,7 @@
 appId: com.localify.prototoy
 productName: Prototoy
+publish:
+  - provider: github
 directories:
   buildResources: build
 files:

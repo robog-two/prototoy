@@ -3,7 +3,14 @@ import { join } from 'path'
 import { homedir } from 'os'
 import * as fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { autoUpdater } from 'electron-updater'
 import { registerIpcHandlers } from './ipc'
+
+function setupUpdater(): void {
+  if (is.dev) return
+
+  autoUpdater.checkForUpdatesAndNotify()
+}
 
 function registerLinuxDesktop(): void {
   if (process.platform !== 'linux' || !process.env.APPIMAGE) return
@@ -87,6 +94,7 @@ app.whenReady().then(() => {
   })
 
   registerIpcHandlers()
+  setupUpdater()
   createWindow()
 
   app.on('activate', function () {
