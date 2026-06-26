@@ -37,7 +37,7 @@ export default function PhoneView(): React.ReactElement {
 
   useEffect(() => {
     if (previewState.status !== 'ready' || !previewState.port || !iframeRef.current) return
-    const base = `http://localhost:${previewState.port}`
+    const base = `http://0.0.0.0:${previewState.port}`
     const target = selectedScreenUrlPath ? base + selectedScreenUrlPath : base
     if (iframeRef.current.src !== target) {
       iframeRef.current.src = target
@@ -263,7 +263,7 @@ export default function PhoneView(): React.ReactElement {
 
       <div className="preview-foot">
         <span>
-          <span className="dot" /> localhost:{port || '—'}
+          <span className="dot" /> 0.0.0.0:{port || '—'}
         </span>
         <span>HMR watching</span>
         <PreviewFooterFlex />
