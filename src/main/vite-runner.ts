@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 import fs from 'fs'
 
-const [, , portStr, projectPath, appNodeModules] = process.argv
+const [,, portStr, projectPath, appNodeModules] = process.argv
 const port = parseInt(portStr, 10)
 const previewDir = path.join(projectPath, '.prototoy', 'preview')
 const includePath = path.join(projectPath, '_include')
@@ -26,7 +26,7 @@ function resolveAppModules(): Plugin {
         return base
       }
       return null
-    },
+    }
   }
 }
 
@@ -46,7 +46,7 @@ function cursorBridge(): Plugin {
     name: 'cursor-bridge',
     transformIndexHtml(html: string) {
       return html.replace('</head>', script + '</head>')
-    },
+    }
   }
 }
 
@@ -60,22 +60,22 @@ async function main(): Promise<void> {
     server: {
       port,
       strictPort: true,
-      fs: { allow: [projectPath, appNodeModules] },
+      fs: { allow: [projectPath, appNodeModules] }
     },
     resolve: {
       extensions: ['.tsx', '.ts', '.jsx', '.js', '.css', '.svg', '.woff', '.woff2'],
       alias: {
-        '@include': includePath,
-      },
+        '@include': includePath
+      }
     },
-    logLevel: 'info',
+    logLevel: 'info'
   })
 
   await server.listen()
   process.stdout.write(`ready:${port}\n`)
 }
 
-main().catch((err) => {
+main().catch(err => {
   process.stderr.write(`${err.message}\n`)
   process.exit(1)
 })

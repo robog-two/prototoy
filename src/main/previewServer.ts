@@ -195,7 +195,7 @@ export async function startPreviewServer(
 
     viteProcess = utilityProcess.fork(runnerPath, [String(port), projectPath, appNodeModules], {
       stdio: 'pipe',
-      serviceName: 'vite-preview',
+      serviceName: 'vite-preview'
     })
 
     const timeout = setTimeout(() => {

@@ -18,7 +18,7 @@ export default function PhoneControls({ iframeRef, onReset }: Props): React.Reac
         x: Math.round(r.left * dpr),
         y: Math.round(r.top * dpr),
         width: Math.round(r.width * dpr),
-        height: Math.round(r.height * dpr),
+        height: Math.round(r.height * dpr)
       }
     }
     const filePath = await window.api.saveScreenshot(rect)
@@ -43,11 +43,7 @@ export default function PhoneControls({ iframeRef, onReset }: Props): React.Reac
       <ControlBtn title="Reset preview" onClick={onReset} disabled={!isReady}>
         ↺ Reset
       </ControlBtn>
-      <ControlBtn
-        title="Save screenshot"
-        onClick={handleScreenshot}
-        disabled={!isReady || !selectedScreenPath}
-      >
+      <ControlBtn title="Save screenshot" onClick={handleScreenshot} disabled={!isReady || !selectedScreenPath}>
         ⬡ Screenshot
       </ControlBtn>
       <ControlBtn
@@ -67,7 +63,7 @@ function ControlBtn({
   title,
   onClick,
   disabled,
-  accent,
+  accent
 }: {
   children: React.ReactNode
   title: string
@@ -90,7 +86,7 @@ function ControlBtn({
         border: `1px solid ${accent ? 'transparent' : 'var(--border)'}`,
         opacity: disabled ? 0.5 : 1,
         cursor: disabled ? 'default' : 'pointer',
-        transition: 'opacity 0.1s',
+        transition: 'opacity 0.1s'
       }}
     >
       {children}

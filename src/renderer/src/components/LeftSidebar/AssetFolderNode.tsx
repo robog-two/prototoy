@@ -74,7 +74,7 @@ export default function AssetFolderNode({ node, depth }: Props): React.ReactElem
         style={{
           paddingLeft: indentLeft,
           background: dragOverFolder ? 'rgba(0,194,234,0.15)' : 'transparent',
-          position: 'relative',
+          position: 'relative'
         }}
         onDragOver={(e) => {
           e.preventDefault()
@@ -143,7 +143,7 @@ export default function AssetFolderNode({ node, depth }: Props): React.ReactElem
               border: '1.5px solid var(--color-ink)',
               background: 'var(--color-paper)',
               fontFamily: 'var(--font-display)',
-              fontSize: 'var(--fs-xs)',
+              fontSize: 'var(--fs-xs)'
             }}
           />
         </div>
@@ -165,13 +165,7 @@ export default function AssetFolderNode({ node, depth }: Props): React.ReactElem
             )
           )}
           {node.children.length === 0 && (
-            <div
-              style={{
-                padding: `4px 12px 4px ${indentLeft + 14}px`,
-                fontSize: 'var(--fs-xs)',
-                color: 'var(--color-ink-60)',
-              }}
-            >
+            <div style={{ padding: `4px 12px 4px ${indentLeft + 14}px`, fontSize: 'var(--fs-xs)', color: 'var(--color-ink-60)' }}>
               Empty folder
             </div>
           )}

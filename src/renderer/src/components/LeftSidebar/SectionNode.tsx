@@ -12,14 +12,7 @@ interface Props {
   children?: React.ReactNode
 }
 
-export default function SectionNode({
-  node,
-  depth,
-  projectPath,
-  onCreating,
-  color,
-  children,
-}: Props): React.ReactElement {
+export default function SectionNode({ node, depth, projectPath, onCreating, color, children }: Props): React.ReactElement {
   const { expandedSections, toggleSection, showToast, setTree } = useStore()
   const isExpanded = expandedSections.has(node.path)
   const [dragOver, setDragOver] = useState(false)
@@ -64,7 +57,7 @@ export default function SectionNode({
         style={{
           paddingLeft: indentLeft,
           background: dragOver ? 'rgba(0,194,234,0.15)' : 'transparent',
-          position: 'relative',
+          position: 'relative'
         }}
         onClick={() => toggleSection(node.path)}
       >
@@ -77,22 +70,13 @@ export default function SectionNode({
         </span>
         <span className="tr-label">{node.name}</span>
         <div className="tr-right" onClick={(e) => e.stopPropagation()}>
-          <button
-            className="tr-icon-btn"
-            title="New screen"
-            onClick={() => onCreating({ type: 'screen', parentPath: node.path })}
-          >
+          <button className="tr-icon-btn" title="New screen" onClick={() => onCreating({ type: 'screen', parentPath: node.path })}>
             <Plus />
           </button>
           <button className="tr-icon-btn" title="Open in Claude Code" onClick={handleOpenInClaude}>
             <Claude />
           </button>
-          <button
-            className="tr-icon-btn"
-            title="Delete section"
-            onClick={handleDelete}
-            style={{ color: 'var(--color-pink)' }}
-          >
+          <button className="tr-icon-btn" title="Delete section" onClick={handleDelete} style={{ color: 'var(--color-pink)' }}>
             ✕
           </button>
         </div>
@@ -108,13 +92,7 @@ export default function SectionNode({
         <div>
           {children}
           {node.children.length === 0 && (
-            <div
-              style={{
-                padding: `4px 12px 4px ${indentLeft + 14}px`,
-                fontSize: 'var(--fs-xs)',
-                color: 'var(--color-ink-60)',
-              }}
-            >
+            <div style={{ padding: `4px 12px 4px ${indentLeft + 14}px`, fontSize: 'var(--fs-xs)', color: 'var(--color-ink-60)' }}>
               Empty section
             </div>
           )}

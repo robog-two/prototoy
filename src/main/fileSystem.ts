@@ -1,16 +1,7 @@
 import { dialog } from 'electron'
 import * as fs from 'fs'
 import * as path from 'path'
-import type {
-  ProjectConfig,
-  FolderConfig,
-  TreeNode,
-  ProjectTree,
-  SectionNode,
-  ProjectIssue,
-  IssueKind,
-  AssetNode,
-} from '../shared/types'
+import type { ProjectConfig, FolderConfig, TreeNode, ProjectTree, SectionNode, ProjectIssue, IssueKind, AssetNode } from '../shared/types'
 
 let _issueSeq = 0
 function makeIssue(
@@ -21,15 +12,7 @@ function makeIssue(
   repair: ProjectIssue['repair'],
   repairCurrentValue?: string
 ): ProjectIssue {
-  return {
-    id: `issue-${++_issueSeq}`,
-    kind,
-    title,
-    detail,
-    path: issuePath,
-    repair,
-    repairCurrentValue,
-  }
+  return { id: `issue-${++_issueSeq}`, kind, title, detail, path: issuePath, repair, repairCurrentValue }
 }
 
 function push(issues: ProjectIssue[] | undefined, issue: ProjectIssue): void {
@@ -39,16 +22,13 @@ function push(issues: ProjectIssue[] | undefined, issue: ProjectIssue): void {
 export async function openProjectDialog(): Promise<string | null> {
   const result = await dialog.showOpenDialog({
     properties: ['openDirectory'],
-    title: 'Open Prototoy Project',
+    title: 'Open Prototoy Project'
   })
   if (result.canceled || result.filePaths.length === 0) return null
   return result.filePaths[0]
 }
 
-export function readOrCreateProjectConfig(
-  projectPath: string,
-  issues?: ProjectIssue[]
-): ProjectConfig {
+export function readOrCreateProjectConfig(projectPath: string, issues?: ProjectIssue[]): ProjectConfig {
   const configPath = path.join(projectPath, 'project.json')
   const fallbackName = path.basename(projectPath)
 
@@ -64,30 +44,27 @@ export function readOrCreateProjectConfig(
 
     const r = raw as Record<string, unknown> | null
 
-    const name = r && typeof r.name === 'string' && r.name.trim() ? r.name.trim() : fallbackName
+    const name =
+      r && typeof r.name === 'string' && (r.name as string).trim()
+        ? (r.name as string).trim()
+        : fallbackName
 
-    const description = r && typeof r.description === 'string' ? r.description : ''
+    const description =
+      r && typeof r.description === 'string' ? r.description : ''
 
     const config: ProjectConfig = { name, description }
 
     const needsRepair = parseError || !r || r.name !== name || r.description !== description
     if (needsRepair) {
-      try {
-        fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
-      } catch {
-        /* non-fatal */
-      }
+      try { fs.writeFileSync(configPath, JSON.stringify(config, null, 2)) } catch { /* non-fatal */ }
       if (parseError) {
-        push(
-          issues,
-          makeIssue(
-            'project-config-corrupt',
-            'Project config was corrupt',
-            `project.json could not be parsed and has been reset. The project name was taken from the folder name "${name}".`,
-            configPath,
-            'none'
-          )
-        )
+        push(issues, makeIssue(
+          'project-config-corrupt',
+          'Project config was corrupt',
+          `project.json could not be parsed and has been reset. The project name was taken from the folder name "${name}".`,
+          configPath,
+          'none'
+        ))
       }
     }
 
@@ -95,11 +72,7 @@ export function readOrCreateProjectConfig(
   }
 
   const config: ProjectConfig = { name: fallbackName, description: '' }
-  try {
-    fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
-  } catch {
-    /* non-fatal */
-  }
+  try { fs.writeFileSync(configPath, JSON.stringify(config, null, 2)) } catch { /* non-fatal */ }
   return config
 }
 
@@ -112,40 +85,26 @@ function readFolderDescription(folderJsonPath: string, issues?: ProjectIssue[]):
     if (typeof raw?.description === 'string') return raw.description
 
     const fixed = { ...(raw && typeof raw === 'object' ? raw : {}), description: '' }
-    try {
-      fs.writeFileSync(folderJsonPath, JSON.stringify(fixed, null, 2))
-    } catch {
-      /* non-fatal */
-    }
-    push(
-      issues,
-      makeIssue(
-        'section-config-missing-desc',
-        'Section description missing',
-        `folder.json in "${sectionName}" had no description field. You can set one now.`,
-        sectionPath,
-        'text',
-        ''
-      )
-    )
+    try { fs.writeFileSync(folderJsonPath, JSON.stringify(fixed, null, 2)) } catch { /* non-fatal */ }
+    push(issues, makeIssue(
+      'section-config-missing-desc',
+      'Section description missing',
+      `folder.json in "${sectionName}" had no description field. You can set one now.`,
+      sectionPath,
+      'text',
+      ''
+    ))
     return ''
   } catch {
-    try {
-      fs.writeFileSync(folderJsonPath, JSON.stringify({ description: '' }, null, 2))
-    } catch {
-      /* non-fatal */
-    }
-    push(
-      issues,
-      makeIssue(
-        'section-config-corrupt',
-        'Section config was corrupt',
-        `folder.json in "${sectionName}" could not be parsed and has been reset. You can set a description now.`,
-        sectionPath,
-        'text',
-        ''
-      )
-    )
+    try { fs.writeFileSync(folderJsonPath, JSON.stringify({ description: '' }, null, 2)) } catch { /* non-fatal */ }
+    push(issues, makeIssue(
+      'section-config-corrupt',
+      'Section config was corrupt',
+      `folder.json in "${sectionName}" could not be parsed and has been reset. You can set a description now.`,
+      sectionPath,
+      'text',
+      ''
+    ))
     return ''
   }
 }
@@ -155,16 +114,13 @@ function readChildren(dirPath: string, projectPath: string, issues?: ProjectIssu
   try {
     entries = fs.readdirSync(dirPath, { withFileTypes: true })
   } catch (err) {
-    push(
-      issues,
-      makeIssue(
-        'directory-unreadable',
-        'Directory could not be read',
-        `"${path.basename(dirPath)}" was skipped. ${err instanceof Error ? err.message : String(err)}`,
-        dirPath,
-        'none'
-      )
-    )
+    push(issues, makeIssue(
+      'directory-unreadable',
+      'Directory could not be read',
+      `"${path.basename(dirPath)}" was skipped. ${err instanceof Error ? err.message : String(err)}`,
+      dirPath,
+      'none'
+    ))
     return []
   }
 
@@ -188,21 +144,18 @@ function readChildren(dirPath: string, projectPath: string, issues?: ProjectIssu
           name: entry.name,
           path: childPath,
           description,
-          children: readChildren(childPath, projectPath, issues),
+          children: readChildren(childPath, projectPath, issues)
         }
         nodes.push(section)
       }
     } catch (err) {
-      push(
-        issues,
-        makeIssue(
-          'directory-unreadable',
-          'Entry could not be read',
-          `"${entry.name}" was skipped. ${err instanceof Error ? err.message : String(err)}`,
-          path.join(dirPath, entry.name),
-          'none'
-        )
-      )
+      push(issues, makeIssue(
+        'directory-unreadable',
+        'Entry could not be read',
+        `"${entry.name}" was skipped. ${err instanceof Error ? err.message : String(err)}`,
+        path.join(dirPath, entry.name),
+        'none'
+      ))
     }
   }
 
@@ -224,7 +177,7 @@ export function readProjectTree(projectPath: string, issues?: ProjectIssue[]): P
   return {
     projectPath,
     config,
-    children: readChildren(projectPath, projectPath, issues),
+    children: readChildren(projectPath, projectPath, issues)
   }
 }
 
@@ -236,12 +189,7 @@ export function createScreen(parentPath: string, name: string): string {
   return screenPath
 }
 
-export function createSection(
-  parentPath: string,
-  name: string,
-  description: string,
-  projectPath?: string
-): string {
+export function createSection(parentPath: string, name: string, description: string, projectPath?: string): string {
   const sectionPath = path.join(parentPath, name)
   fs.mkdirSync(sectionPath, { recursive: true })
   const config: FolderConfig = { description }
@@ -282,10 +230,7 @@ export function ensureIncludeDir(projectPath: string): void {
     fs.mkdirSync(includePath, { recursive: true })
     fs.mkdirSync(path.join(includePath, 'components'), { recursive: true })
     fs.mkdirSync(path.join(includePath, 'assets'), { recursive: true })
-    fs.writeFileSync(
-      path.join(includePath, 'assets', 'variables.css'),
-      ':root {\n  /* Add your CSS variables here */\n  --color-primary: #007aff;\n  --color-background: #ffffff;\n  --color-text: #1a1a1a;\n  --spacing-sm: 8px;\n  --spacing-md: 16px;\n  --spacing-lg: 24px;\n  --border-radius: 12px;\n}\n'
-    )
+    fs.writeFileSync(path.join(includePath, 'assets', 'variables.css'), ':root {\n  /* Add your CSS variables here */\n  --color-primary: #007aff;\n  --color-background: #ffffff;\n  --color-text: #1a1a1a;\n  --spacing-sm: 8px;\n  --spacing-md: 16px;\n  --spacing-lg: 24px;\n  --border-radius: 12px;\n}\n')
   } else {
     // Migrate old variables.css from _include root to _include/assets
     const oldVariablesPath = path.join(includePath, 'variables.css')
@@ -335,11 +280,7 @@ export function listAssets(projectPath: string): string[] {
   return fs.readdirSync(assetsPath).filter((f) => !f.startsWith('.'))
 }
 
-export function copyAssetsToInclude(
-  projectPath: string,
-  srcPaths: string[],
-  targetFolder?: string
-): string[] {
+export function copyAssetsToInclude(projectPath: string, srcPaths: string[], targetFolder?: string): string[] {
   const assetsDir = path.join(projectPath, '_include', 'assets')
   const destDir = targetFolder ? path.join(assetsDir, targetFolder) : assetsDir
   fs.mkdirSync(destDir, { recursive: true })
@@ -390,7 +331,7 @@ export function listAssetsTree(projectPath: string): AssetNode[] {
             name: entry.name,
             relPath,
             type: 'folder',
-            children,
+            children
           }
         }
         const stat = fs.statSync(path.join(dir, entry.name))
@@ -398,7 +339,7 @@ export function listAssetsTree(projectPath: string): AssetNode[] {
           name: entry.name,
           relPath,
           type: getAssetType(entry.name),
-          size: stat.size,
+          size: stat.size
         }
       })
   }
@@ -412,17 +353,11 @@ export function createAssetFolder(projectPath: string, folderRelPath: string): v
   fs.mkdirSync(newFolderPath, { recursive: true })
 }
 
-export function moveAsset(
-  projectPath: string,
-  assetRelPath: string,
-  newParentRelPath: string
-): void {
+export function moveAsset(projectPath: string, assetRelPath: string, newParentRelPath: string): void {
   const assetsDir = path.join(projectPath, '_include', 'assets')
   const oldPath = path.join(assetsDir, assetRelPath)
   const name = path.basename(assetRelPath)
-  const newPath = newParentRelPath
-    ? path.join(assetsDir, newParentRelPath, name)
-    : path.join(assetsDir, name)
+  const newPath = newParentRelPath ? path.join(assetsDir, newParentRelPath, name) : path.join(assetsDir, name)
   fs.mkdirSync(path.dirname(newPath), { recursive: true })
   fs.renameSync(oldPath, newPath)
 }
@@ -486,11 +421,7 @@ export function collectAllScreens(
       const childPath = path.join(dir, entry.name)
       if (fs.existsSync(path.join(childPath, 'index.tsx'))) {
         const rel = path.relative(projectPath, childPath).replace(/\\/g, '/')
-        screens.push({
-          name: entry.name,
-          urlPath: '/' + rel,
-          fsPath: path.join(childPath, 'index.tsx'),
-        })
+        screens.push({ name: entry.name, urlPath: '/' + rel, fsPath: path.join(childPath, 'index.tsx') })
       } else {
         walk(childPath)
       }
@@ -506,11 +437,7 @@ export function ensureAllSectionSymlinks(projectPath: string): string[] {
 
   function walk(dir: string): void {
     let entries: fs.Dirent[]
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true })
-    } catch {
-      return
-    }
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }) } catch { return }
     for (const entry of entries) {
       if (!entry.isDirectory() || entry.name.startsWith('.') || entry.name === '_include') continue
       const childPath = path.join(dir, entry.name)
@@ -526,9 +453,7 @@ export function ensureAllSectionSymlinks(projectPath: string): string[] {
   return failures
 }
 
-export function collectScreensInSection(
-  sectionPath: string
-): Array<{ name: string; relPath: string }> {
+export function collectScreensInSection(sectionPath: string): Array<{ name: string; relPath: string }> {
   const screens: Array<{ name: string; relPath: string }> = []
 
   function walk(dir: string): void {
@@ -539,7 +464,7 @@ export function collectScreensInSection(
       if (fs.existsSync(path.join(childPath, 'index.tsx'))) {
         screens.push({
           name: entry.name,
-          relPath: path.relative(sectionPath, path.join(childPath, 'index.tsx')),
+          relPath: path.relative(sectionPath, path.join(childPath, 'index.tsx'))
         })
       } else {
         walk(childPath)

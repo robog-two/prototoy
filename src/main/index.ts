@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell, nativeImage } from 'electron'
+import { app, BrowserWindow, shell, ipcMain, nativeImage } from 'electron'
 import { join } from 'path'
 import { homedir } from 'os'
 import * as fs from 'fs'
@@ -20,10 +20,10 @@ function setupUpdater(): void {
 
   try {
     log.info(`Checking for updates. Current version: ${app.getVersion()}`)
-    void autoUpdater.checkForUpdates()
+    autoUpdater.checkForUpdates()
 
     autoUpdater.on('update-available', () => {
-      void autoUpdater.downloadUpdate()
+      autoUpdater.downloadUpdate()
     })
 
     autoUpdater.on('download-progress', (progress) => {
@@ -33,7 +33,7 @@ function setupUpdater(): void {
           percent: Math.round(progress.percent),
           bytesPerSecond: progress.bytesPerSecond,
           transferred: progress.transferred,
-          total: progress.total,
+          total: progress.total
         })
       }
     })
@@ -58,6 +58,10 @@ function setupUpdater(): void {
   }
 }
 
+function getUpdateReady(): boolean {
+  return updateReady
+}
+
 function registerLinuxDesktop(): void {
   if (process.platform !== 'linux' || !process.env.APPIMAGE) return
 
@@ -75,19 +79,16 @@ function registerLinuxDesktop(): void {
 
     if (!fs.existsSync(desktopDest)) {
       fs.mkdirSync(desktopDir, { recursive: true })
-      fs.writeFileSync(
-        desktopDest,
-        [
-          '[Desktop Entry]',
-          'Name=Prototoy',
-          'Comment=UI mockup and wireframe organizer',
-          `Exec=${process.env.APPIMAGE}`,
-          'Icon=prototoy',
-          'Type=Application',
-          'Categories=Development;',
-          'StartupWMClass=Prototoy',
-        ].join('\n') + '\n'
-      )
+      fs.writeFileSync(desktopDest, [
+        '[Desktop Entry]',
+        'Name=Prototoy',
+        'Comment=UI mockup and wireframe organizer',
+        `Exec=${process.env.APPIMAGE}`,
+        'Icon=prototoy',
+        'Type=Application',
+        'Categories=Development;',
+        'StartupWMClass=Prototoy',
+      ].join('\n') + '\n')
     }
   } catch {
     // Non-fatal — icon just won't appear in compositor
@@ -111,13 +112,9 @@ function createWindow(): void {
     icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: true,
-      webSecurity: true,
-      allowRunningInsecureContent: false,
-      enableRemoteModule: false,
-    },
+      sandbox: false,
+      webSecurity: false
+    }
   })
 
   mainWindow.on('ready-to-show', () => {
@@ -160,7 +157,7 @@ app.setName('Prototoy')
 registerLinuxDesktop()
 
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('net.robog.prototoy')
+  electronApp.setAppUserModelId('com.localify.prototoy')
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)

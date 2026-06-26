@@ -47,10 +47,7 @@ export default function ScreenNode({ node, depth, projectPath }: Props): React.R
         <button
           className="tr-icon-btn"
           title="Delete screen"
-          onClick={(e) => {
-            e.stopPropagation()
-            handleDelete()
-          }}
+          onClick={(e) => { e.stopPropagation(); handleDelete() }}
           style={{ color: 'var(--color-pink)' }}
         >
           ✕

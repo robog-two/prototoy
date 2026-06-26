@@ -116,7 +116,7 @@ export default function AssetsZone(): React.ReactElement {
             background: 'transparent',
             cursor: 'pointer',
             fontSize: 'var(--fs-sm)',
-            padding: '0 var(--sp-2)',
+            padding: '0 var(--sp-2)'
           }}
         >
           +
@@ -150,7 +150,7 @@ export default function AssetsZone(): React.ReactElement {
               border: '1px solid var(--color-ink)',
               background: 'var(--color-paper)',
               fontFamily: 'var(--font-display)',
-              fontSize: 'var(--fs-xs)',
+              fontSize: 'var(--fs-xs)'
             }}
           />
         </div>

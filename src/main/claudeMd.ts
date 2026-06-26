@@ -70,21 +70,18 @@ export function writeSectionClaudeMd(
   let description = ''
   if (fs.existsSync(folderConfigPath)) {
     try {
-      const config = JSON.parse(fs.readFileSync(folderConfigPath, 'utf-8')) as Record<
-        string,
-        unknown
-      >
-      description = (config.description as string) || ''
-    } catch {
-      // Ignore malformed folder.json
-    }
+      description = JSON.parse(fs.readFileSync(folderConfigPath, 'utf-8')).description || ''
+    } catch {}
   }
 
   const content = generateSectionClaudeMd(sectionPath, projectName, description)
   fs.writeFileSync(path.join(sectionPath, 'CLAUDE.md'), content)
 }
 
-export function regenerateAllClaudeMds(projectPath: string, projectName: string): void {
+export function regenerateAllClaudeMds(
+  projectPath: string,
+  projectName: string
+): void {
   function walk(dir: string): void {
     const entries = fs.readdirSync(dir, { withFileTypes: true })
     for (const entry of entries) {

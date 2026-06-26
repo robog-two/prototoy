@@ -49,12 +49,7 @@ export function addRecentProject(tree: ProjectTree): void {
     path: tree.projectPath,
     screens: screenCount,
     sections: sectionCount,
-    openedAt: new Date().toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }),
+    openedAt: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
   }
 
   // Remove duplicate if exists

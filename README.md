@@ -1,5 +1,4 @@
 # Prototoy
-
 An organizer for mockups, wireframes, and prototypes of mobile UIs created with agentic programming.
 
 [https://prototoy.robog.net/](https://prototoy.robog.net/)
