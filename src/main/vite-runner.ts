@@ -58,6 +58,7 @@ async function main(): Promise<void> {
     appType: 'spa',
     plugins: [resolveAppModules(), react(), cursorBridge()],
     server: {
+      host: '0.0.0.0',
       port,
       strictPort: true,
       fs: { allow: [projectPath, appNodeModules] }

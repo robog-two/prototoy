@@ -22,7 +22,7 @@ export default function PhoneView(): React.ReactElement {
 
   useEffect(() => {
     if (previewState.status !== 'ready' || !previewState.port || !iframeRef.current) return
-    const base = `http://0.0.0.0:${previewState.port}`
+    const base = `http://localhost:${previewState.port}`
     const target = selectedScreenUrlPath ? base + selectedScreenUrlPath : base
     if (iframeRef.current.src !== target) {
       iframeRef.current.src = target
