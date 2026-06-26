@@ -59,6 +59,7 @@ async function main(): Promise<void> {
     plugins: [resolveAppModules(), react(), cursorBridge()],
     server: {
       host: '0.0.0.0',
+      allowedHosts: true,
       port,
       strictPort: true,
       fs: { allow: [projectPath, appNodeModules] }
