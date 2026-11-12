@@ -33,9 +33,10 @@ jobs:
 
       - name: Build, sign & notarize
         env:
-          # Base64 Developer ID Application .p12 (exported without a password).
+          # Base64 Developer ID Application .p12 and its password.
           # electron-builder imports it into a temporary keychain.
           CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           # Notarization via App Store Connect API key
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
