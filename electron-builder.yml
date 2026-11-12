@@ -24,19 +24,21 @@ asarUnpack:
 mac:
   icon: build/icon/icon.png
   category: public.app-category.developer-tools
+  entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
-  # Self-signed code-signing identity (CN of the cert in .signing/).
-  # Required for Squirrel.Mac auto-updates; the app is NOT Apple-notarized.
-  identity: Prototoy Self-Signed
-  # No notarization, so the hardened runtime only causes library-validation
-  # crashes with a self-signed (no Team ID) cert. Disable it.
-  hardenedRuntime: false
+  # Apple Developer ID cert (Team P6ZG86HAX8). Naming it explicitly makes the
+  # build fail loudly instead of silently falling back to ad-hoc signing.
+  identity: Samuel Knight (P6ZG86HAX8)
+  # Hardened runtime + notarization so Gatekeeper opens the app without warnings.
+  # Notarization credentials come from APPLE_API_KEY / APPLE_API_KEY_ID /
+  # APPLE_API_ISSUER env vars (App Store Connect API key).
+  hardenedRuntime: true
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-  notarize: false
+  notarize: true
   target:
     - dmg
     - zip
